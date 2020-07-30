@@ -1,22 +1,14 @@
 class ApplicationError(Exception):
-    def __init__(self):
-        self.code = 'APIError',
-        self.message = f'Failed to parse page for link'
+    pass
 
 
 class RegexError(ApplicationError):
-    def __init__(self):
-        self.code = 'APIError',
-        self.message: str = 'Failed to parse regex'
+    pass
 
 
 class AuthenticationError(ApplicationError):
-    def __init__(self):
-        self.code = 'APIError',
-        self.message: str = 'Failed to login'
+    pass
 
 
 class BeautifulSoupError(ApplicationError):
-    def __init__(self):
-        self.code = 'APIError',
-        self.message: str = 'Failed to parse with BeautifulSoup'
+    pass
