@@ -94,7 +94,6 @@ class LIUserCrawler(LICrawler):
         html_page = self.driver.page_source
         self.driver.close()
 
-        logger.info(f"Starting the LIUserCrawler for user {user_url}")
         try:
             soup = BeautifulSoup(html_page, 'lxml')
             profile_pic_url: str = soup.find('img', attrs={'class': 'EntityPhoto-circle-9'})['src']
