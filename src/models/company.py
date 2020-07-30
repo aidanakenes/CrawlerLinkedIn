@@ -1,5 +1,7 @@
+from typing import Optional, List
+
 from pydantic import BaseModel
-from typing import List, Optional
+
 from src.models.post import Post
 
 
@@ -8,8 +10,8 @@ class Company(BaseModel):
     heading: Optional[str]
     external_url: Optional[str]
     location: Optional[str]
-    employees: Optional[int]
-    followers: Optional[int]
+    employees_num: Optional[int]
+    followers_num: Optional[int]
     posts: List[Post]
     url: str
     profile_pic_url: Optional[str]

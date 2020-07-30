@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from src.service.crawler import LICrawler
 from src.models.user import User
 from src.utils.logger import get_logger
-from src.utils.err_utils import ApplicationError, RegexError, BeautifulSoupError
+from src.utils.err_utils import RegexError, BeautifulSoupError
 
 logger = get_logger(__name__)
 
@@ -16,6 +16,7 @@ class LIUserCrawler(LICrawler):
 
     def __init__(self):
         super().__init__()
+        self.li_user_home = 'https://www.linkedin.com/in/'
         self.driver = super().login()
 
     @staticmethod
@@ -50,8 +51,8 @@ class LIUserCrawler(LICrawler):
             regex_res = re.findall(pattern=regex, string=html_page)
             if regex_res:
                 regex_res = json.loads('[{"dateRange":{"start":' + regex_res[0] + ']')
-        except ApplicationError as e:
-            logger.info(f'Cannot parse page: {type(e)}')
+        except Exception as e:
+            logger.info(f'Cannot parse experience: {type(e)}')
             raise RegexError()
 
         experience = []
@@ -79,26 +80,26 @@ class LIUserCrawler(LICrawler):
             regex_res = re.findall(pattern=regex, string=html_page)
             if regex_res:
                 regex_res = json.loads('[{"entityUrn":"urn:li:fsd_skill:' + regex_res[0] + 'Skill"}]')
-        except ApplicationError as e:
-            logger.info(f'Cannot parse page: {type(e)}')
+        except Exception as e:
+            logger.info(f'Cannot parse skills: {type(e)}')
             raise RegexError()
 
         for skill in regex_res:
             skills.append(skill.get('name'))
         return skills
 
-    def get_user(self, user_url: str) -> Optional[User]:
-        self.driver = self.login()
+    def get_user(self, username: str) -> Optional[User]:
+        user_url = f'{self.li_user_home}{username}'
         self.driver.get(url=user_url)
         html_page = self.driver.page_source
         self.driver.close()
 
-        logger.info(f"Starting the LIParser for user {user_url}")
+        logger.info(f"Starting the LIUserCrawler for user {user_url}")
         try:
             soup = BeautifulSoup(html_page, 'lxml')
             profile_pic_url: str = soup.find('img', attrs={'class': 'EntityPhoto-circle-9'})['src']
 
-            logger.info(f"Returning the LIParser's result for user {user_url}")
+            logger.info(f"Returning the LIUserCrawler's result for user {user_url}")
             return User(
                 full_name=str(
                     soup.find('li', attrs={'class': 'inline t-24 t-black t-normal break-words'}).text
@@ -114,7 +115,7 @@ class LIUserCrawler(LICrawler):
         except TypeError as e:
             logger.info(f'Cannot parse page: {type(e)}')
             raise e
-        except ApplicationError as e:
+        except Exception as e:
             logger.info(f'Cannot parse page: {type(e)}')
             raise BeautifulSoupError()
 
