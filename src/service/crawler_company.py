@@ -24,7 +24,7 @@ class LICompanyCrawler(LICrawler):
         logger.info(f"Starting the LICompanyCrawler for user {company_url}")
         try:
             soup = BeautifulSoup(html_page, 'lxml')
-            logger.info(f"Returning the LICompanyCrawler's result for user {company_url}")
+            logger.info(f"Returning the LICompanyCrawler's result for company {company_url}")
             return Company(
                 title='',
                 heading='',
