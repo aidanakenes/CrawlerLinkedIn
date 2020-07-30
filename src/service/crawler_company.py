@@ -21,7 +21,6 @@ class LICompanyCrawler(LICrawler):
         html_page = self.driver.page_source
         self.driver.close()
 
-        logger.info(f"Starting the LICompanyCrawler for user {company_url}")
         try:
             soup = BeautifulSoup(html_page, 'lxml')
             logger.info(f"Returning the LICompanyCrawler's result for company {company_url}")
