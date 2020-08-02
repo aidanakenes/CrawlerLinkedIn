@@ -2,16 +2,14 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from src.models.post import Post
-
 
 class Company(BaseModel):
     title: str
-    heading: Optional[str]
-    external_url: Optional[str]
-    location: Optional[str]
-    employees_num: Optional[int]
-    followers_num: Optional[int]
-    posts: List[Post]
     url: str
-    profile_pic_url: Optional[str]
+    external_url: Optional[str]
+    logo: Optional[str]
+    major: Optional[str]
+    employees_num: Optional[int]
+    locations: List[str]
+    heading: Optional[str]
+    about: Optional[str]
