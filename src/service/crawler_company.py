@@ -28,6 +28,7 @@ class LICompanyCrawler:
                 cookies=COOKIES,
                 timeout=10
             )
+            del COMPANY_PARAMS[-1]
             if r.ok:
                 return json.loads(r.text).get('included')
         except TimeoutError as e:
@@ -38,6 +39,8 @@ class LICompanyCrawler:
         data = self._get_company_data_(company_url=company_url)
         try:
             for d in data:
+                major = d.get('localizedName') if 'localizedName' in d.keys() else None
+
                 if 'staffCount' in d.keys():
                     pic_root_url = d.get('logo').get('image').get('rootUrl')
                     pic_size = d.get('logo').get('image').get('artifacts')[-1].get('fileIdentifyingUrlPathSegment')
@@ -48,7 +51,7 @@ class LICompanyCrawler:
                         url=company_url,
                         external_url=d.get('companyPageUrl'),
                         logo=f'{pic_root_url}{pic_size}',
-                        major=d.get('localizedName') if 'localizedName' in d.keys() else None,
+                        major=major,
                         employees_num=d.get('staffCount'),
                         locations=[
                             f"{loc.get('country')}, {loc.get('geographicArea')}, {loc.get('line1')}"
@@ -63,3 +66,10 @@ class LICompanyCrawler:
         except ValidationError as e:
             logger.error(f'Failed to parse company: {type(e)}')
             raise ApplicationError()
+
+
+if __name__ == '__main__':
+    c = LICompanyCrawler()
+    print(json.dumps(c.get_company('https://www.linkedin.com/company/kolesagroup/').dict(), indent=4, ensure_ascii=False))
+    print(json.dumps(c.get_company('https://www.linkedin.com/company/astana-it-university/').dict(), indent=4, ensure_ascii=False))
+    print(json.dumps(c.get_company('https://www.linkedin.com/company/kolesagroup/').dict(), indent=4, ensure_ascii=False))

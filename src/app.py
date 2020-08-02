@@ -22,8 +22,6 @@ app = FastAPI()
 async def get(user_url: str):
     try:
         parser = LIUserCrawler()
-        # url = parse.urlparse(user_url)
-        # print(url)
         _user: User = parser.get_user(user_url=user_url)
         return JSONResponse(
             content=jsonable_encoder({'data': _user})

@@ -27,6 +27,7 @@ class LIUserCrawler:
                 cookies=COOKIES,
                 timeout=10
             )
+            del USER_PARAMS[-1]
             if r.ok:
                 return json.loads(r.text).get('included')
         except TimeoutError as e:
