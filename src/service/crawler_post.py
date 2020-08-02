@@ -33,7 +33,7 @@ class LIPostCrawler:
             logger.error(f'Failed to parse posts for {company_id}: {type(e)}')
             raise ApplicationError()
 
-    def get_post(self, company_id: str) -> List[Post]:
+    def get_posts(self, company_id: str) -> List[Post]:
         data = self._get_post_data_(company_id=company_id)
         posts = []
         try:

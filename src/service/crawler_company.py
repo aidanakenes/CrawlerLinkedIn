@@ -38,8 +38,6 @@ class LICompanyCrawler:
         data = self._get_company_data_(company_url=company_url)
         try:
             for d in data:
-                major = d.get('localizedName') if 'localizedName' in d.keys() else None
-
                 if 'staffCount' in d.keys():
                     pic_root_url = d.get('logo').get('image').get('rootUrl')
                     pic_size = d.get('logo').get('image').get('artifacts')[-1].get('fileIdentifyingUrlPathSegment')
@@ -50,7 +48,7 @@ class LICompanyCrawler:
                         url=company_url,
                         external_url=d.get('companyPageUrl'),
                         logo=f'{pic_root_url}{pic_size}',
-                        major=major,
+                        major=d.get('localizedName') if 'localizedName' in d.keys() else None,
                         employees_num=d.get('staffCount'),
                         locations=[
                             f"{loc.get('country')}, {loc.get('geographicArea')}, {loc.get('line1')}"
