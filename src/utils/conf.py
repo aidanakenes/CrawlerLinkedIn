@@ -1,3 +1,18 @@
+import os
+
+
+password = os.environ.get('POSTGRE_PASS')
+ENGINE = f"postgresql://postgres:{password}@localhost/postgres"
+REDIS_HOST = os.environ.get('REDIS_HOST')
+REDIS_PORT = int(os.environ.get('REDIS_PORT'))
+REDIS_TTL = int(os.environ.get('REDIS_TTL'))
+
+RedisConfig = {
+    'host': REDIS_HOST,
+    'port': REDIS_PORT,
+    'decode_responses': True
+}
+
 COOKIES = {
     'JSESSIONID': 'ajax:8627634674697802621',
     'li_at': 'AQEDATG9tukDsd0UAAABc6mRSWgAAAFzzZ3NaFYAKdPum1E-Ggd-Q7bqs5XneWPVPPGNEwRqTaWD8FHGFnKGAUMDqdN4JD8ZQhenw6ThTic6oLx3uFE2DDnHDP3oRuKepOxgqStf2t7bmNuO2Ht0glGE'
