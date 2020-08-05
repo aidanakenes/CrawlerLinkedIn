@@ -15,11 +15,20 @@ RedisConfig = {
 }
 
 
-
 USER_PARAMS = {
     'q': 'memberIdentity',
     'decorationId': 'com.linkedin.voyager.dash.deco.identity.profile.FullProfileWithEntities-53',
     'memberIdentity': ''
+}
+
+SEARCH_PARAMS = {
+    'start': '0',
+    'count': '49',
+    'filters': 'List(resultType->PEOPLE)',
+    'keywords': '',
+    'origin': 'GLOBAL_SEARCH_HEADER',
+    'q': 'all',
+    'queryContext': 'List(spellCorrectionEnabled->true,relatedSearchesEnabled->true,kcardTypes->PROFILE|COMPANY|JOB_TITLE)'
 }
 
 COMPANY_PARAMS = {
