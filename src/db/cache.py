@@ -25,7 +25,7 @@ class Cache:
             value=user.json()
         )
 
-    def get_cache_user(self, user_id: str) -> User:
+    def get_cached_user(self, user_id: str) -> User:
         cached = self.my_redis.get(f"user_{user_id}")
         if cached is not None:
             logger.info(f"Returning the cached result for username {user_id}")
@@ -39,7 +39,7 @@ class Cache:
             value=company.json()
         )
 
-    def get_cache_company(self, company_id: str) -> Company:
+    def get_cached_company(self, company_id: str) -> Company:
         cached = self.my_redis.get(f"company_{company_id}")
         if cached is not None:
             logger.info(f"Returning the cached result for {company_id}")
@@ -53,8 +53,22 @@ class Cache:
             value=str([post.dict() for post in posts])
         )
 
-    def get_cache_posts(self, company_id: str):
+    def get_cached_posts(self, company_id: str):
         cached = self.my_redis.get(f"posts_{company_id}")
         if cached is not None:
             logger.info(f"Returning the cached posts for {company_id}")
+            return json.dumps(cached, ensure_ascii=False)
+
+    def save_cache_users(self, users: List[User], fullname: str):
+        logger.info(f"Caching the users with fullname {fullname}")
+        self.my_redis.setex(
+            name=f"users_{fullname}",
+            time=REDIS_TTL,
+            value=str([user.dict() for user in users])
+        )
+
+    def get_cached_users(self, fullname: str):
+        cached = self.my_redis.get(f"users_{fullname}")
+        if cached is not None:
+            logger.info(f"Returning the cached users with {fullname}")
             return json.dumps(cached, ensure_ascii=False)
