@@ -19,7 +19,7 @@ class LICompanyCrawler:
         self._request_url = 'https://www.linkedin.com/voyager/api/organization/companies'
 
     def _get_company_data_(self, company_id: str):
-        COMPANY_PARAMS.append(('universalName', company_id))
+        COMPANY_PARAMS[2] = {'universalName': company_id}
         try:
             r = requests.get(
                 self._request_url,
@@ -28,7 +28,6 @@ class LICompanyCrawler:
                 cookies=COOKIES,
                 timeout=10
             )
-            del COMPANY_PARAMS[-1]
             if r.ok:
                 return json.loads(r.text).get('included')
         except TimeoutError as e:

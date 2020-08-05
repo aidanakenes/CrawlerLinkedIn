@@ -4,3 +4,4 @@ __pycache__/
 src/service/drafts
 src/geckodriver.log
 src/service/geckodriver.log
+local.env
