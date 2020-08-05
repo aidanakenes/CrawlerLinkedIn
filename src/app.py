@@ -23,7 +23,7 @@ my_redis = Cache()
 
 @app.get('/profile', description='Get profile info')
 async def get(user_id: str):
-    _user = my_redis.get_cache_user(user_id=user_id)
+    _user = my_redis.get_cached_user(user_id=user_id)
     if _user is None:
         try:
             parser = LIUserCrawler()
@@ -41,7 +41,7 @@ async def get(user_id: str):
 
 @app.get('/company', description='Get company info')
 async def get(company_id: str):
-    _company = my_redis.get_cache_company(company_id=company_id)
+    _company = my_redis.get_cached_company(company_id=company_id)
     if _company is None:
         try:
             parser = LICompanyCrawler()
@@ -59,7 +59,7 @@ async def get(company_id: str):
 
 @app.get('/posts', description='Get company\'s posts')
 async def get(company_id: str):
-    _posts = my_redis.get_cache_posts(company_id=company_id)
+    _posts = my_redis.get_cached_posts(company_id=company_id)
     if _posts is None or len(_posts) == 0:
         try:
             parser = LIPostCrawler()
@@ -73,6 +73,24 @@ async def get(company_id: str):
 
     return JSONResponse(
         content=jsonable_encoder({'data': _posts})
+    )
+
+
+@app.get('/users')
+async def get(fullname: str):
+    _users = my_redis.get_cached_users(fullname=fullname)
+    if _users is None:
+        try:
+            parser = LIUserCrawler()
+            _users = parser.get_user_by_name(fullname=fullname)
+            my_redis.save_cache_users(users=_users, fullname=fullname)
+        except ApplicationError as e:
+            return JSONResponse(
+                status_code=HTTPStatus.BAD_REQUEST,
+                content=jsonable_encoder({'error': type(e)})
+            )
+    return JSONResponse(
+        content=jsonable_encoder({'data': _users})
     )
 
 if __name__ == '__main__':
