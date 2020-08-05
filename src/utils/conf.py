@@ -1,8 +1,9 @@
 import os
 
 
-password = os.environ.get('POSTGRE_PASS')
-ENGINE = f"postgresql://postgres:{password}@localhost/postgres"
+DB_PASS = os.environ.get('POSTGRE_PASS')
+DB_NAME = os.environ.get('POSTGRE_DB')
+ENGINE = f"postgresql://postgres:{DB_PASS}@localhost/{DB_NAME}"
 REDIS_HOST = os.environ.get('REDIS_HOST')
 REDIS_PORT = int(os.environ.get('REDIS_PORT'))
 REDIS_TTL = int(os.environ.get('REDIS_TTL'))
