@@ -3,6 +3,6 @@ from pydantic import BaseModel
 
 
 class Post(BaseModel):
-    company_name: str
+    company_id: str
     date: datetime
     content: str

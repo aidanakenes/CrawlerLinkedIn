@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 
 class Company(BaseModel):
+    company_id: str
     title: str
     url: str
     external_url: Optional[str]
