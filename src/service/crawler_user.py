@@ -17,8 +17,8 @@ class LIUserCrawler:
         self.li_user_home = 'https://www.linkedin.com/in/'
         self._request_url = 'https://www.linkedin.com/voyager/api/identity/dash/profiles'
 
-    def _get_user_data_(self, user_url: str):
-        USER_PARAMS.append(('memberIdentity', user_url[len(self.li_user_home):-1]))
+    def _get_user_data_(self, user_id: str):
+        USER_PARAMS.append(('memberIdentity', user_id))
         try:
             r = requests.get(
                 self._request_url,
@@ -31,7 +31,7 @@ class LIUserCrawler:
             if r.ok:
                 return json.loads(r.text).get('included')
         except TimeoutError as e:
-            logger.error(f'Failed to parse user {user_url}: {type(e)}')
+            logger.error(f'Failed to parse user {user_id}: {type(e)}')
             raise ApplicationError()
 
     @staticmethod
@@ -89,25 +89,26 @@ class LIUserCrawler:
         return skills
 
     @staticmethod
-    def _get_personal_(data: dict) -> Dict:
+    def _get_profile_pic(data: dict) -> Optional[str]:
+        if data.get('profilePicture') is None:
+            return
+        root_url = data.get('profilePicture').get('displayImageReference').get('vectorImage').get('rootUrl')
+        size = data.get('profilePicture').get('displayImageReference').get('vectorImage').get('artifacts')[
+            -1].get(
+            'fileIdentifyingUrlPathSegment')
+        return f'{root_url}{size}'
+
+    def _get_personal_(self, data: dict) -> Dict:
         personal = {}
         try:
             for d in data:
-                profile_pic_url = d.get('profilePicture')
                 if 'birthDateOn' in d.keys():
-                    if profile_pic_url:
-                        root_url = d.get('profilePicture').get('displayImageReference').get('vectorImage').get('rootUrl')
-                        size = d.get('profilePicture').get('displayImageReference').get('vectorImage').get('artifacts')[
-                            -1].get(
-                            'fileIdentifyingUrlPathSegment')
-                        profile_pic_url = f'{root_url}{size}'
-
                     personal = {
                         'full_name': f"{d.get('firstName')}{d.get('lastName')}",
                         'heading': d.get('headline'),
                         'last_name': d.get('lastName'),
                         'location': d.get('locationName'),
-                        'profile_pic_url': profile_pic_url
+                        'profile_pic_url': self._get_profile_pic(data=d)
                     }
         except AttributeError as e:
             logger.error(f'Failed to parse personal info: {type(e)}')
@@ -115,11 +116,13 @@ class LIUserCrawler:
         return personal
 
     def get_user(self, user_url: str) -> Optional[User]:
-        data = self._get_user_data_(user_url=user_url)
+        user_id = user_url[len(self.li_user_home):-1]
+        data = self._get_user_data_(user_id=user_id)
         user_dict = self._get_personal_(data=data)
+        user_dict['user_id'] = user_id
         user_dict['user_url'] = user_url
         user_dict['education'] = self._get_education_(data=data)
         user_dict['experience'] = self._get_experience_(data=data)
         user_dict['skills'] = self._get_skills_(data=data)
-        logger.info(f"Returning the LIUserCrawler's result for user {user_url}")
+        logger.info(f"Returning the LIUserCrawler's result for user {user_id}")
         return User(**user_dict)

@@ -34,23 +34,25 @@ class LIPostCrawler:
             logger.error(f'Failed to parse posts for {company_id}: {type(e)}')
             raise ApplicationError()
 
+    @staticmethod
+    def _get_post(data: dict, company_id: str) -> Post:
+        return Post(
+                    company_id=company_id,
+                    date=dateparser.parse(
+                        data.get('actor').get('subDescription').get('accessibilityText'),
+                        settings={'TIMEZONE': 'Asia/Almaty'},
+                        date_formats=['%d %B %Y']
+                    ),
+                    content=data.get('commentary').get('text').get('text')
+                )
+
     def get_posts(self, company_id: str) -> List[Post]:
         data = self._get_post_data_(company_id=company_id)
         posts = []
         try:
             for d in data:
                 if 'annotation' in d.keys():
-                    posts.append(
-                        Post(
-                            company_name=company_id,
-                            date=dateparser.parse(
-                                d.get('actor').get('subDescription').get('accessibilityText'),
-                                settings={'TIMEZONE': 'Asia/Almaty'},
-                                date_formats=['%d %B %Y']
-                            ),
-                            content=d.get('commentary').get('text').get('text')
-                        )
-                    )
+                    posts.append(self._get_post(data=d, company_id=company_id))
             logger.info(f"Returning the LIPostCrawler's result for posts of {company_id}")
             return posts
         except AttributeError as e:
@@ -59,8 +61,3 @@ class LIPostCrawler:
         except ValidationError as e:
             logger.error(f'Failed to parse posts: {type(e)}')
             raise ApplicationError()
-
-
-if __name__ == '__main__':
-    c = LIPostCrawler()
-    print(len(c.get_post(company_id='kolesagroup')))
