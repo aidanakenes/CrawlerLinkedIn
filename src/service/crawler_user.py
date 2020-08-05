@@ -1,7 +1,7 @@
 import json
 
 import requests
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from pydantic.error_wrappers import ValidationError
 
 from src.models.user import User
@@ -9,7 +9,7 @@ from src.models.education import Education
 from src.models.experience import Experience
 from src.utils.logger import get_logger
 from src.utils.err_utils import ApplicationError
-from src.utils.conf import HEADERS, COOKIES, USER_PARAMS
+from src.utils.conf import HEADERS, COOKIES, USER_PARAMS, SEARCH_PARAMS
 
 logger = get_logger(__name__)
 
@@ -19,6 +19,7 @@ class LIUserCrawler:
     def __init__(self):
         self.li_user_home = 'https://www.linkedin.com/in/'
         self._request_url = 'https://www.linkedin.com/voyager/api/identity/dash/profiles'
+        self._request_search = 'https://www.linkedin.com/voyager/api/search/blended'
 
     def _get_user_data_(self, user_id: str):
         USER_PARAMS['memberIdentity'] = user_id
@@ -33,7 +34,23 @@ class LIUserCrawler:
             if r.ok:
                 return json.loads(r.text).get('included')
         except TimeoutError as e:
-            logger.error(f'Failed to parse user {user_id}: {type(e)}')
+            logger.error(f'Failed to find user {user_id}: {type(e)}')
+            raise ApplicationError()
+
+    def _get_users_data(self, fullname: str):
+        SEARCH_PARAMS['keywords'] = fullname
+        try:
+            r = requests.get(
+                self._request_search,
+                headers=HEADERS,
+                params=SEARCH_PARAMS,
+                cookies=COOKIES,
+                timeout=10
+            )
+            if r.ok:
+                return json.loads(r.text)['included']
+        except TimeoutError as e:
+            logger.error(f'Failed to find users with fullname {fullname}: {type(e)}')
             raise ApplicationError()
 
     @staticmethod
@@ -60,17 +77,22 @@ class LIUserCrawler:
                     user_data['location'] = d.get('locationName')
                     user_data['profile_pic_url'] = self._get_profile_pic(data=d)
                 if 'schoolUrn' in d.keys():
+                    date_range = d.get('dateRange')
+                    start = end = None
+                    if date_range:
+                        start = date_range.get('start').get('year') if date_range.keys() else None
+                        end = date_range.get('end').get('year') if date_range.keys() else None
                     education.append(Education(
                         school=d.get('schoolName'),
                         degree=d.get('degreeName'),
-                        start=int(d.get('dateRange').get('start').get('year')),
-                        end=int(d.get('dateRange').get('end').get('year'))
+                        start=start,
+                        end=end
                     ))
                 if 'title' in d.keys():
                     company = d.get('companyName')
                     if company:
-                        start = d.get('dateRange').get('start')
-                        end = d.get('dateRange').get('end')
+                        start = d.get('dateRange').get('start') if 'start' in d.keys() else None
+                        end = d.get('dateRange').get('end') if 'end' in d.keys() else None
                         experience.append(Experience(
                             company=d.get('companyName'),
                             position=d.get('title'),
@@ -85,10 +107,10 @@ class LIUserCrawler:
                 user_data['skills'] = skills
             return user_data
         except AttributeError as e:
-            logger.error(f'Failed to parse skills: {type(e)}')
+            logger.error(f"Failed to parse data: {type(e)}")
             raise ApplicationError()
 
-    def get_user(self, user_id: str) -> Optional[User]:
+    def get_user_by_id(self, user_id: str) -> Optional[User]:
         try:
             data = self._get_user_data_(user_id=user_id)
             user_data = self._collect_data_(data=data)
@@ -99,3 +121,15 @@ class LIUserCrawler:
         except ValidationError as e:
             logger.error(f'Failed to parse data for {user_id}: {type(e)}')
             raise ApplicationError()
+
+    def get_user_by_name(self, fullname: str) -> List[User]:
+        data = self._get_users_data(fullname=fullname)
+        fullname = fullname.split()
+        fname, lname = fullname[0].capitalize(), fullname[1].capitalize()
+        users = []
+        for d in data:
+            if d.get('firstName') == fname and d.get('lastName') == lname:
+                users.append(self.get_user_by_id(d.get('publicIdentifier')))
+        return users
+
+
