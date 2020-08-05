@@ -19,7 +19,7 @@ class LICompanyCrawler:
         self._request_url = 'https://www.linkedin.com/voyager/api/organization/companies'
 
     def _get_company_data_(self, company_id: str):
-        COMPANY_PARAMS[2] = {'universalName': company_id}
+        COMPANY_PARAMS['universalName'] = company_id
         try:
             r = requests.get(
                 self._request_url,
@@ -49,8 +49,7 @@ class LICompanyCrawler:
                              f"{loc.get('line1')}")
         return locations
 
-    def get_company(self, company_url: str) -> Optional[Company]:
-        company_id = company_url[len(self.li_comp_home):-1]
+    def get_company(self, company_id: str) -> Optional[Company]:
         data = self._get_company_data_(company_id=company_id)
         try:
             for d in data:
@@ -60,7 +59,7 @@ class LICompanyCrawler:
                     return Company(
                         company_id=company_id,
                         title=d.get('name'),
-                        url=company_url,
+                        url=f'{self.li_comp_home}{company_id}',
                         external_url=d.get('companyPageUrl'),
                         logo=self._get_logo(data=d),
                         major=major,

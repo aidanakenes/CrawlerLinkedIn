@@ -21,7 +21,7 @@ class LIUserCrawler:
         self._request_url = 'https://www.linkedin.com/voyager/api/identity/dash/profiles'
 
     def _get_user_data_(self, user_id: str):
-        USER_PARAMS[2] = {'memberIdentity': user_id}
+        USER_PARAMS['memberIdentity'] = user_id
         try:
             r = requests.get(
                 self._request_url,
@@ -63,8 +63,8 @@ class LIUserCrawler:
                     education.append(Education(
                         school=d.get('schoolName'),
                         degree=d.get('degreeName'),
-                        start=d.get('dateRange').get('start').get('year'),
-                        end=d.get('dateRange').get('end').get('year')
+                        start=int(d.get('dateRange').get('start').get('year')),
+                        end=int(d.get('dateRange').get('end').get('year'))
                     ))
                 if 'title' in d.keys():
                     company = d.get('companyName')
@@ -88,11 +88,12 @@ class LIUserCrawler:
             logger.error(f'Failed to parse skills: {type(e)}')
             raise ApplicationError()
 
-    def get_user(self, user_url: str) -> Optional[User]:
-        user_id = user_url[len(self.li_user_home):-1]
+    def get_user(self, user_id: str) -> Optional[User]:
         try:
             data = self._get_user_data_(user_id=user_id)
             user_data = self._collect_data_(data=data)
+            user_data['user_id'] = user_id
+            user_data['user_url'] = f'{self.li_user_home}{user_id}'
             logger.info(f"Returning the LIUserCrawler's result for user {user_id}")
             return User(**user_data)
         except ValidationError as e:

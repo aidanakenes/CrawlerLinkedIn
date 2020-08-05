@@ -15,17 +15,21 @@ RedisConfig = {
 }
 
 
-USER_PARAMS = [
-    {'q': 'memberIdentity'},
-    {'decorationId': 'com.linkedin.voyager.dash.deco.identity.profile.FullProfileWithEntities-53'},
-]
 
-COMPANY_PARAMS = [
-    {'decorationId', 'com.linkedin.voyager.deco.organization.web.WebFullCompanyMain-28'},
-    {'q', 'universalName'}
-]
+USER_PARAMS = {
+    'q': 'memberIdentity',
+    'decorationId': 'com.linkedin.voyager.dash.deco.identity.profile.FullProfileWithEntities-53',
+    'memberIdentity': ''
+}
 
-POST_PARAMS = [
-    {'count', '100'},
-    {'q', 'companyRelevanceFeed'}
-]
+COMPANY_PARAMS = {
+    'decorationId': 'com.linkedin.voyager.deco.organization.web.WebFullCompanyMain-28',
+    'q': 'universalName',
+    'universalName': ''
+}
+
+POST_PARAMS = {
+    'count': '100',
+    'q': 'companyRelevanceFeed',
+    'companyIdOrUniversalName': ''
+}

@@ -18,7 +18,7 @@ class LIPostCrawler:
         self._request_url = 'https://www.linkedin.com/voyager/api/organization/updatesV2'
 
     def _get_post_data_(self, company_id):
-        POST_PARAMS[2] = {'companyIdOrUniversalName': company_id}
+        POST_PARAMS['companyIdOrUniversalName'] = company_id
         try:
             r = requests.get(
                 self._request_url,
