@@ -21,25 +21,26 @@ app = FastAPI()
 my_redis = Cache()
 
 
-@app.get('/profile', description='Get profile info')
+@app.get('/linkedin/profile', description='Get profile info')
 async def get(user_id: str):
     _user = my_redis.get_cached_user(user_id=user_id)
     if _user is None:
         try:
             parser = LIUserCrawler()
-            _user: User = parser.get_user(user_id=user_id)
-            my_redis.save_cache_user(user=_user)
+            _user: User = parser.get_user_by_id(user_id=user_id)
+            if _user:
+                my_redis.save_cache_user(user=_user)
         except ApplicationError as e:
             return JSONResponse(
                 status_code=HTTPStatus.BAD_REQUEST,
-                content=jsonable_encoder({'error': type(e)})
+                content=jsonable_encoder({'error': e})
             )
     return JSONResponse(
         content=jsonable_encoder({'data': _user})
     )
 
 
-@app.get('/company', description='Get company info')
+@app.get('/linkedin/company', description='Get company info')
 async def get(company_id: str):
     _company = my_redis.get_cached_company(company_id=company_id)
     if _company is None:
@@ -50,14 +51,14 @@ async def get(company_id: str):
         except ApplicationError as e:
             return JSONResponse(
                 status_code=HTTPStatus.BAD_REQUEST,
-                content=jsonable_encoder({'error': type(e)})
+                content=jsonable_encoder({'error': e})
             )
     return JSONResponse(
         content=jsonable_encoder({'data': _company})
     )
 
 
-@app.get('/posts', description='Get company\'s posts')
+@app.get('/linkedin/posts', description='Get company\'s posts')
 async def get(company_id: str):
     _posts = my_redis.get_cached_posts(company_id=company_id)
     if _posts is None or len(_posts) == 0:
@@ -68,7 +69,7 @@ async def get(company_id: str):
         except ApplicationError as e:
             return JSONResponse(
                 status_code=HTTPStatus.BAD_REQUEST,
-                content=jsonable_encoder({'error': type(e)})
+                content=jsonable_encoder({'error': e})
             )
 
     return JSONResponse(
@@ -76,21 +77,22 @@ async def get(company_id: str):
     )
 
 
-@app.get('/users')
+@app.get('/linkedin/search')
 async def get(fullname: str):
     _users = my_redis.get_cached_users(fullname=fullname)
     if _users is None:
         try:
             parser = LIUserCrawler()
-            _users = parser.get_user_by_name(fullname=fullname)
-            my_redis.save_cache_users(users=_users, fullname=fullname)
+            _users = parser.get_users(fullname=fullname)
+            if len(_users) >= 1:
+                my_redis.save_cache_users(users=_users, fullname=fullname)
         except ApplicationError as e:
             return JSONResponse(
                 status_code=HTTPStatus.BAD_REQUEST,
-                content=jsonable_encoder({'error': type(e)})
+                content=jsonable_encoder({'error': e})
             )
     return JSONResponse(
-        content=jsonable_encoder({'data': _users})
+        content=jsonable_encoder({'total': len(_users), 'data': _users})
     )
 
 if __name__ == '__main__':

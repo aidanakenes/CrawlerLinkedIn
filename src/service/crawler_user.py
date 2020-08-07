@@ -8,7 +8,7 @@ from src.models.user import User
 from src.models.education import Education
 from src.models.experience import Experience
 from src.utils.logger import get_logger
-from src.utils.err_utils import ApplicationError
+from src.utils.err_utils import ApplicationError, NotFoundError
 from src.utils.conf import HEADERS, COOKIES, USER_PARAMS, SEARCH_PARAMS
 
 logger = get_logger(__name__)
@@ -21,9 +21,10 @@ class LIUserCrawler:
         self._request_url = 'https://www.linkedin.com/voyager/api/identity/dash/profiles'
         self._request_search = 'https://www.linkedin.com/voyager/api/search/blended'
 
-    def _get_user_data_(self, user_id: str):
+    def _extract_user_json_(self, user_id: str):
         USER_PARAMS['memberIdentity'] = user_id
         try:
+            logger.info(f'Extracting data for {user_id}')
             r = requests.get(
                 self._request_url,
                 headers=HEADERS,
@@ -35,23 +36,36 @@ class LIUserCrawler:
                 return json.loads(r.text).get('included')
         except TimeoutError as e:
             logger.error(f'Failed to find user {user_id}: {type(e)}')
-            raise ApplicationError()
+            raise NotFoundError()
 
-    def _get_users_data(self, fullname: str):
+    def _extract_users_json_(self, fullname: str):
         SEARCH_PARAMS['keywords'] = fullname
+        SEARCH_PARAMS['start'] = 0
+        user_json = []
         try:
-            r = requests.get(
-                self._request_search,
-                headers=HEADERS,
-                params=SEARCH_PARAMS,
-                cookies=COOKIES,
-                timeout=10
-            )
-            if r.ok:
-                return json.loads(r.text)['included']
+            total = json.loads(requests.get(
+                        self._request_search,
+                        headers=HEADERS,
+                        params=SEARCH_PARAMS,
+                        cookies=COOKIES,
+                        timeout=10
+                    ).text)['data']['metadata']['totalResultCount']
+            count = int(SEARCH_PARAMS['count'])
+            logger.info(f"Extracting json data for user with fullname {fullname}")
+            for start in range(0, total, count):
+                r_text = requests.get(
+                    self._request_search,
+                    headers=HEADERS,
+                    params=SEARCH_PARAMS,
+                    cookies=COOKIES,
+                    timeout=10
+                ).text
+                user_json.append(json.loads(r_text)['included'])
+                SEARCH_PARAMS['start'] = str(start)
+            return user_json
         except TimeoutError as e:
             logger.error(f'Failed to find users with fullname {fullname}: {type(e)}')
-            raise ApplicationError()
+            raise NotFoundError()
 
     @staticmethod
     def _get_profile_pic(data: dict) -> Optional[str]:
@@ -80,8 +94,8 @@ class LIUserCrawler:
                     date_range = d.get('dateRange')
                     start = end = None
                     if date_range:
-                        start = date_range.get('start').get('year') if date_range.keys() else None
-                        end = date_range.get('end').get('year') if date_range.keys() else None
+                        start = date_range.get('start').get('year') if 'start' in date_range.keys() else None
+                        end = date_range.get('end').get('year') if 'end' in date_range.keys() else None
                     education.append(Education(
                         school=d.get('schoolName'),
                         degree=d.get('degreeName'),
@@ -109,10 +123,13 @@ class LIUserCrawler:
         except AttributeError as e:
             logger.error(f"Failed to parse data: {type(e)}")
             raise ApplicationError()
+        except Exception as e:
+            logger.error(f'Failed to parse data: {type(e)}')
+            raise ApplicationError()
 
     def get_user_by_id(self, user_id: str) -> Optional[User]:
         try:
-            data = self._get_user_data_(user_id=user_id)
+            data = self._extract_user_json_(user_id=user_id)
             user_data = self._collect_data_(data=data)
             user_data['user_id'] = user_id
             user_data['user_url'] = f'{self.li_user_home}{user_id}'
@@ -121,15 +138,17 @@ class LIUserCrawler:
         except ValidationError as e:
             logger.error(f'Failed to parse data for {user_id}: {type(e)}')
             raise ApplicationError()
+        except Exception as e:
+            logger.error(f'Failed to parse data for {user_id}: {type(e)}')
+            raise ApplicationError()
 
-    def get_user_by_name(self, fullname: str) -> List[User]:
-        data = self._get_users_data(fullname=fullname)
-        fullname = fullname.split()
-        fname, lname = fullname[0].capitalize(), fullname[1].capitalize()
+    def get_users(self, fullname: str) -> List[User]:
+        data = self._extract_users_json_(fullname=fullname)
         users = []
         for d in data:
-            if d.get('firstName') == fname and d.get('lastName') == lname:
-                users.append(self.get_user_by_id(d.get('publicIdentifier')))
+            for user in d:
+                if user.get('firstName') or user.get('lastName'):
+                    users.append(self.get_user_by_id(user.get('publicIdentifier')))
         return users
 
 

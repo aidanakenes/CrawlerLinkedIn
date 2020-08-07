@@ -14,7 +14,6 @@ RedisConfig = {
     'decode_responses': True
 }
 
-
 USER_PARAMS = {
     'q': 'memberIdentity',
     'decorationId': 'com.linkedin.voyager.dash.deco.identity.profile.FullProfileWithEntities-53',
@@ -23,7 +22,7 @@ USER_PARAMS = {
 
 SEARCH_PARAMS = {
     'start': '0',
-    'count': '49',
+    'count': '10',
     'filters': 'List(resultType->PEOPLE)',
     'keywords': '',
     'origin': 'GLOBAL_SEARCH_HEADER',
