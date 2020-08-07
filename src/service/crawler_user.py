@@ -37,35 +37,45 @@ class LIUserCrawler:
         except TimeoutError as e:
             logger.error(f'Failed to find user {user_id}: {type(e)}')
             raise NotFoundError()
+        except ConnectionError as e:
+            logger.error(f'Failed to connect to LinkedIn: {type(e)}')
+            raise NotFoundError()
 
     def _extract_users_json_(self, fullname: str):
         SEARCH_PARAMS['keywords'] = fullname
         SEARCH_PARAMS['start'] = 0
         user_json = []
         try:
-            total = json.loads(requests.get(
+            res_data = json.loads(requests.get(
                         self._request_search,
                         headers=HEADERS,
                         params=SEARCH_PARAMS,
                         cookies=COOKIES,
                         timeout=10
-                    ).text)['data']['metadata']['totalResultCount']
+                    ).text)['data']['metadata']
+            if 'totalResultCount' not in res_data.keys():
+                raise NotFoundError()
+            total = res_data['totalResultCount']
             count = int(SEARCH_PARAMS['count'])
             logger.info(f"Extracting json data for user with fullname {fullname}")
             for start in range(0, total, count):
-                r_text = requests.get(
+                r = requests.get(
                     self._request_search,
                     headers=HEADERS,
                     params=SEARCH_PARAMS,
                     cookies=COOKIES,
                     timeout=10
-                ).text
-                user_json.append(json.loads(r_text)['included'])
+                )
+                if r.ok:
+                    user_json.append(json.loads(r.text)['included'])
                 SEARCH_PARAMS['start'] = str(start)
             return user_json
         except TimeoutError as e:
             logger.error(f'Failed to find users with fullname {fullname}: {type(e)}')
             raise NotFoundError()
+        except ConnectionError as e:
+            logger.error(f'Failed to connect to LinkedIn: {type(e)}')
+            raise ApplicationError()
 
     @staticmethod
     def _get_profile_pic(data: dict) -> Optional[str]:
@@ -130,15 +140,14 @@ class LIUserCrawler:
     def get_user_by_id(self, user_id: str) -> Optional[User]:
         try:
             data = self._extract_user_json_(user_id=user_id)
+            if data is None:
+                raise NotFoundError()
             user_data = self._collect_data_(data=data)
             user_data['user_id'] = user_id
             user_data['user_url'] = f'{self.li_user_home}{user_id}'
             logger.info(f"Returning the LIUserCrawler's result for user {user_id}")
             return User(**user_data)
         except ValidationError as e:
-            logger.error(f'Failed to parse data for {user_id}: {type(e)}')
-            raise ApplicationError()
-        except Exception as e:
             logger.error(f'Failed to parse data for {user_id}: {type(e)}')
             raise ApplicationError()
 

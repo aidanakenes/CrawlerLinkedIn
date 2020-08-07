@@ -3,9 +3,10 @@ from typing import List
 import uvicorn
 from http import HTTPStatus
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, status, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 from src.models.user import User
 from src.models.company import Company
@@ -14,7 +15,7 @@ from src.db.cache import Cache
 from src.service.crawler_user import LIUserCrawler
 from src.service.crawler_company import LICompanyCrawler
 from src.service.crawler_post import LIPostCrawler
-from src.utils.err_utils import ApplicationError
+from src.utils.err_utils import ApplicationError, NotFoundError, ValidationError
 
 app = FastAPI()
 
@@ -30,9 +31,9 @@ async def get(user_id: str):
             _user: User = parser.get_user_by_id(user_id=user_id)
             if _user:
                 my_redis.save_cache_user(user=_user)
-        except ApplicationError as e:
+        except NotFoundError or ApplicationError as e:
             return JSONResponse(
-                status_code=HTTPStatus.BAD_REQUEST,
+                status_code=e.code,
                 content=jsonable_encoder({'error': e})
             )
     return JSONResponse(
@@ -79,6 +80,7 @@ async def get(company_id: str):
 
 @app.get('/linkedin/search')
 async def get(fullname: str):
+    assert len(fullname.split()) > 1
     _users = my_redis.get_cached_users(fullname=fullname)
     if _users is None:
         try:
@@ -86,14 +88,23 @@ async def get(fullname: str):
             _users = parser.get_users(fullname=fullname)
             if len(_users) >= 1:
                 my_redis.save_cache_users(users=_users, fullname=fullname)
-        except ApplicationError as e:
+        except NotFoundError or ApplicationError as e:
             return JSONResponse(
-                status_code=HTTPStatus.BAD_REQUEST,
+                status_code=e.code,
                 content=jsonable_encoder({'error': e})
             )
     return JSONResponse(
         content=jsonable_encoder({'total': len(_users), 'data': _users})
     )
+
+
+@app.exception_handler(AssertionError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=ValidationError().code,
+        content=jsonable_encoder({'error': ValidationError()})
+    )
+
 
 if __name__ == '__main__':
     uvicorn.run('app:app', host='0.0.0.0', port=8080, workers=4)
