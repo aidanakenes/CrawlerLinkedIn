@@ -11,7 +11,7 @@ class User(BaseModel):
     full_name: str
     user_url: str
     profile_pic_url: Optional[str]
-    location: str
+    location: Optional[str]
     heading: Optional[str]
     education: List[Education]
     experience: List[Experience]
