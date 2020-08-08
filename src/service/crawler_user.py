@@ -1,39 +1,40 @@
 import json
 
 import requests
-from typing import Optional, Dict, List
+from typing import Optional, Dict
 from pydantic.error_wrappers import ValidationError
+import pika
 
 from src.models.user import User
 from src.models.education import Education
 from src.models.experience import Experience
 from src.utils.logger import get_logger
 from src.utils.err_utils import ApplicationError, NotFoundError
-from src.utils.conf import HEADERS, COOKIES, USER_PARAMS, SEARCH_PARAMS
+from src.utils.conf import HEADERS, COOKIES, USER_PARAMS
 
 logger = get_logger(__name__)
 
+connection = pika.BlockingConnection(
+    pika.ConnectionParameters(host='localhost'))
+channel = connection.channel()
 
-class LIUserCrawler:
+
+class LICrawler:
 
     def __init__(self):
         self.li_user_home = 'https://www.linkedin.com/in/'
         self._request_url = 'https://www.linkedin.com/voyager/api/identity/dash/profiles'
         self._request_search = 'https://www.linkedin.com/voyager/api/search/blended'
 
-    def _extract_user_json_(self, user_id: str):
-        USER_PARAMS['memberIdentity'] = user_id
+    def _make_request_(self, user_id):
         try:
-            logger.info(f'Extracting data for {user_id}')
-            r = requests.get(
+            return requests.get(
                 self._request_url,
                 headers=HEADERS,
                 params=USER_PARAMS,
                 cookies=COOKIES,
                 timeout=10
             )
-            if r.ok:
-                return json.loads(r.text).get('included')
         except TimeoutError as e:
             logger.error(f'Failed to find user {user_id}: {type(e)}')
             raise NotFoundError()
@@ -41,41 +42,12 @@ class LIUserCrawler:
             logger.error(f'Failed to connect to LinkedIn: {type(e)}')
             raise NotFoundError()
 
-    def _extract_users_json_(self, fullname: str):
-        SEARCH_PARAMS['keywords'] = fullname
-        SEARCH_PARAMS['start'] = 0
-        user_json = []
-        try:
-            res_data = json.loads(requests.get(
-                        self._request_search,
-                        headers=HEADERS,
-                        params=SEARCH_PARAMS,
-                        cookies=COOKIES,
-                        timeout=10
-                    ).text)['data']['metadata']
-            if 'totalResultCount' not in res_data.keys():
-                raise NotFoundError()
-            total = res_data['totalResultCount']
-            count = int(SEARCH_PARAMS['count'])
-            logger.info(f"Extracting json data for user with fullname {fullname}")
-            for start in range(0, total, count):
-                r = requests.get(
-                    self._request_search,
-                    headers=HEADERS,
-                    params=SEARCH_PARAMS,
-                    cookies=COOKIES,
-                    timeout=10
-                )
-                if r.ok:
-                    user_json.append(json.loads(r.text)['included'])
-                SEARCH_PARAMS['start'] = str(start)
-            return user_json
-        except TimeoutError as e:
-            logger.error(f'Failed to find users with fullname {fullname}: {type(e)}')
-            raise NotFoundError()
-        except ConnectionError as e:
-            logger.error(f'Failed to connect to LinkedIn: {type(e)}')
-            raise ApplicationError()
+    def _extract_raw_json_(self, user_id: str):
+        USER_PARAMS['memberIdentity'] = user_id
+        logger.info(f'Extracting data for {user_id}')
+        response = self._make_request_(user_id)
+        if response.ok:
+            return json.loads(response.text).get('included')
 
     @staticmethod
     def _get_profile_pic(data: dict) -> Optional[str]:
@@ -139,10 +111,10 @@ class LIUserCrawler:
 
     def get_user_by_id(self, user_id: str) -> Optional[User]:
         try:
-            data = self._extract_user_json_(user_id=user_id)
-            if data is None:
+            raw_data = self._extract_raw_json_(user_id=user_id)
+            if raw_data is None:
                 raise NotFoundError()
-            user_data = self._collect_data_(data=data)
+            user_data = self._collect_data_(data=raw_data)
             user_data['user_id'] = user_id
             user_data['user_url'] = f'{self.li_user_home}{user_id}'
             logger.info(f"Returning the LIUserCrawler's result for user {user_id}")
@@ -150,14 +122,4 @@ class LIUserCrawler:
         except ValidationError as e:
             logger.error(f'Failed to parse data for {user_id}: {type(e)}')
             raise ApplicationError()
-
-    def get_users(self, fullname: str) -> List[User]:
-        data = self._extract_users_json_(fullname=fullname)
-        users = []
-        for d in data:
-            for user in d:
-                if user.get('firstName') or user.get('lastName'):
-                    users.append(self.get_user_by_id(user.get('publicIdentifier')))
-        return users
-
 
