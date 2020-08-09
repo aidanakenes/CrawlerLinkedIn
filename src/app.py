@@ -1,59 +1,47 @@
 import uvicorn
-
-from fastapi import FastAPI, Request, status, Query
+from fastapi import FastAPI, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
-from src.models.user import User
-from src.service.crawler_user import LICrawler
 from src.service.collector import IDCollector
-from src.utils.err_utils import ApplicationError, NotFoundError, ValidationError
+from src.service.crawler_user import LICrawler
+from src.utils.err_utils import ValidationError, IDValidationError, CustomException
 
 app = FastAPI()
 
 
-@app.get('/linkedin/profile', description='Get profile info')
-async def get(user_id: str):
-    try:
-        crawler = LICrawler()
-        _user: User = crawler.get_user_by_id(user_id=user_id)
-    except NotFoundError or ApplicationError as e:
-        return JSONResponse(
-            status_code=e.code,
-            content=jsonable_encoder({'error': e})
-        )
+@app.get('/linkedin/profile')
+async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a-z0-9-]{1,128}$')):
     return JSONResponse(
-        content=jsonable_encoder({'data': _user})
+        content=jsonable_encoder({'data': LICrawler().get_user_by_id(user_id=user_id)})
     )
 
 
 @app.get('/linkedin/search')
 async def get(fullname: str):
-    assert len(fullname.split()) > 1
-    try:
-        _users = []
-        collector = IDCollector()
-        _users_id = collector.collect_id(fullname=fullname)
-        if len(_users_id) >= 1:
-            crawler = LICrawler()
-            for user_id in _users_id:
-                _users.append(crawler.get_user_by_id(user_id))
-    except NotFoundError or ApplicationError as e:
-        return JSONResponse(
-            status_code=e.code,
-            content=jsonable_encoder({'error': e})
-        )
+    if not len(fullname.split()) > 1:
+        raise ValidationError()
+    users_id = IDCollector().collect_id(fullname=fullname)
+    _users = LICrawler().get_users_by_id(users_id=users_id)
     return JSONResponse(
         content=jsonable_encoder({'total': len(_users), 'data': _users})
     )
 
 
-@app.exception_handler(AssertionError)
+@app.exception_handler(CustomException)
+async def exception_handler(request: Request, exc):
+    return JSONResponse(
+        status_code=exc.code,
+        content=jsonable_encoder({'error': exc})
+    )
+
+
+@app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
-        status_code=ValidationError().code,
-        content=jsonable_encoder({'error': ValidationError()})
+        status_code=IDValidationError().code,
+        content=jsonable_encoder({'error': IDValidationError()})
     )
 
 

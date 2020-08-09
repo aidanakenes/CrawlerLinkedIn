@@ -8,7 +8,7 @@ from src.models.experience import Experience
 
 class User(BaseModel):
     user_id: str
-    full_name: str
+    fullname: str
     user_url: str
     profile_pic_url: Optional[str]
     location: Optional[str]

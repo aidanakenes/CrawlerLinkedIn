@@ -1,22 +1,17 @@
 import json
 
 import requests
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from pydantic.error_wrappers import ValidationError
-import pika
 
 from src.models.user import User
 from src.models.education import Education
 from src.models.experience import Experience
 from src.utils.logger import get_logger
-from src.utils.err_utils import ApplicationError, NotFoundError
+from src.utils.err_utils import ApplicationError, NotFound
 from src.utils.conf import HEADERS, COOKIES, USER_PARAMS
 
 logger = get_logger(__name__)
-
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost'))
-channel = connection.channel()
 
 
 class LICrawler:
@@ -24,9 +19,8 @@ class LICrawler:
     def __init__(self):
         self.li_user_home = 'https://www.linkedin.com/in/'
         self._request_url = 'https://www.linkedin.com/voyager/api/identity/dash/profiles'
-        self._request_search = 'https://www.linkedin.com/voyager/api/search/blended'
 
-    def _make_request_(self, user_id):
+    def _make_request(self, user_id):
         try:
             return requests.get(
                 self._request_url,
@@ -37,15 +31,15 @@ class LICrawler:
             )
         except TimeoutError as e:
             logger.error(f'Failed to find user {user_id}: {type(e)}')
-            raise NotFoundError()
+            raise NotFound()
         except ConnectionError as e:
             logger.error(f'Failed to connect to LinkedIn: {type(e)}')
-            raise NotFoundError()
+            raise ApplicationError()
 
-    def _extract_raw_json_(self, user_id: str):
+    def _extract_raw_json(self, user_id: str):
         USER_PARAMS['memberIdentity'] = user_id
         logger.info(f'Extracting data for {user_id}')
-        response = self._make_request_(user_id)
+        response = self._make_request(user_id)
         if response.ok:
             return json.loads(response.text).get('included')
 
@@ -59,7 +53,7 @@ class LICrawler:
             'fileIdentifyingUrlPathSegment')
         return f'{root_url}{size}'
 
-    def _collect_data_(self, data: dict) -> Dict:
+    def _collect_data(self, data: dict) -> Dict:
         user_data = {}
         education = []
         experience = []
@@ -68,7 +62,7 @@ class LICrawler:
         try:
             for d in data:
                 if 'birthDateOn' in d.keys():
-                    user_data['full_name'] = f"{d.get('firstName')} {d.get('lastName')}"
+                    user_data['fullname'] = f"{d.get('firstName')} {d.get('lastName')}"
                     user_data['heading'] = d.get('headline')
                     user_data['location'] = d.get('locationName')
                     user_data['profile_pic_url'] = self._get_profile_pic(data=d)
@@ -102,24 +96,28 @@ class LICrawler:
                 user_data['education'] = education
                 user_data['skills'] = skills
             return user_data
-        except AttributeError as e:
+        except AttributeError or Exception as e:
             logger.error(f"Failed to parse data: {type(e)}")
             raise ApplicationError()
-        except Exception as e:
-            logger.error(f'Failed to parse data: {type(e)}')
-            raise ApplicationError()
 
-    def get_user_by_id(self, user_id: str) -> Optional[User]:
+    def get_user_by_id(self, user_id: str):
         try:
-            raw_data = self._extract_raw_json_(user_id=user_id)
+            raw_data = self._extract_raw_json(user_id=user_id)
             if raw_data is None:
-                raise NotFoundError()
-            user_data = self._collect_data_(data=raw_data)
+                raise NotFound()
+            user_data = self._collect_data(data=raw_data)
             user_data['user_id'] = user_id
             user_data['user_url'] = f'{self.li_user_home}{user_id}'
             logger.info(f"Returning the LIUserCrawler's result for user {user_id}")
             return User(**user_data)
         except ValidationError as e:
             logger.error(f'Failed to parse data for {user_id}: {type(e)}')
-            raise ApplicationError()
+
+    def get_users_by_id(self, users_id: List[str]) -> List[User]:
+        users = []
+        for user_id in users_id:
+            users.append(
+                self.get_user_by_id(user_id)
+            )
+        return users
 
