@@ -27,7 +27,9 @@ async def get(fullname: str):
     if not len(fullname.split()) > 1:
         raise ValidationError()
     users_id = IDCollector().collect_id(fullname=fullname)
-    _users = LICrawler().get_users_by_id(users_id=users_id)
+    _users = []
+    for user_id in users_id:
+        _users.append(LICrawler().get_user_by_id(user_id=user_id))
     return JSONResponse(
         content=jsonable_encoder({'total': len(_users), 'data': _users})
     )
