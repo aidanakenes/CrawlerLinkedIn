@@ -81,8 +81,9 @@ class LICrawler:
                 if 'title' in d.keys():
                     company = d.get('companyName')
                     if company:
-                        start = d.get('dateRange').get('start') if 'start' in d.keys() else None
-                        end = d.get('dateRange').get('end') if 'end' in d.keys() else None
+                        date_range = d.get('dateRange')
+                        start = date_range.get('start') if 'start' in date_range.keys() else None
+                        end = date_range.get('end') if 'end' in date_range.keys() else None
                         experience.append(Experience(
                             company=d.get('companyName'),
                             position=d.get('title'),
