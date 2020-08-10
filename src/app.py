@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 
 from src.service.collector import IDCollector
 from src.service.crawler_user import LICrawler
+from src.db.db_user import DBUser
 from src.utils.err_utils import ValidationError, IDValidationError, CustomException
 
 app = FastAPI()
@@ -13,8 +14,11 @@ app = FastAPI()
 
 @app.get('/linkedin/profile')
 async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a-z0-9-]{1,128}$')):
+    user = LICrawler().get_user_by_id(user_id=user_id)
+    if user:
+        DBUser().insert_user(user)
     return JSONResponse(
-        content=jsonable_encoder({'data': LICrawler().get_user_by_id(user_id=user_id)})
+        content=jsonable_encoder({'data': user})
     )
 
 
