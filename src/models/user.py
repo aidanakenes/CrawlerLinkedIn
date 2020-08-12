@@ -2,8 +2,19 @@ from typing import Optional, List
 
 from pydantic import BaseModel
 
-from src.models.education import Education
-from src.models.experience import Experience
+
+class Education(BaseModel):
+    school: Optional[str]
+    degree: Optional[str]
+    start: Optional[int]
+    end: Optional[int]
+
+
+class Experience(BaseModel):
+    company: str
+    position: Optional[str]
+    start: Optional[int]
+    end: Optional[int]
 
 
 class User(BaseModel):

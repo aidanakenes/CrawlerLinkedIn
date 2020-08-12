@@ -4,9 +4,7 @@ import requests
 from typing import Optional, Dict, List
 from pydantic.error_wrappers import ValidationError
 
-from src.models.user import User
-from src.models.education import Education
-from src.models.experience import Experience
+from src.models.user import User, Education, Experience
 from src.utils.logger import get_logger
 from src.utils.err_utils import ApplicationError, NotFound
 from src.utils.conf import HEADERS, COOKIES, USER_PARAMS
@@ -68,7 +66,7 @@ class LICrawler:
 
     def _collect_data(self, data: dict) -> Dict:
         """
-        Collect all necessary data for user from raw data
+        Collect all necessary data for user from raw json
         """
         user_data = {}
         education = []
@@ -98,8 +96,10 @@ class LICrawler:
                     company = d.get('companyName')
                     if company:
                         date_range = d.get('dateRange')
-                        start = date_range.get('start') if 'start' in date_range.keys() else None
-                        end = date_range.get('end') if 'end' in date_range.keys() else None
+                        start = end = None
+                        if date_range:
+                            start = date_range.get('start') if 'start' in date_range.keys() else None
+                            end = date_range.get('end') if 'end' in date_range.keys() else None
                         experience.append(Experience(
                             company=d.get('companyName'),
                             position=d.get('title'),
