@@ -4,15 +4,22 @@ import os
 DB_PASS = os.environ.get('POSTGRE_PASS')
 DB_NAME = os.environ.get('POSTGRE_DB')
 ENGINE = f"postgresql://postgres:{DB_PASS}@localhost/{DB_NAME}"
-REDIS_HOST = os.environ.get('REDIS_HOST')
-REDIS_PORT = int(os.environ.get('REDIS_PORT'))
-REDIS_TTL = int(os.environ.get('REDIS_TTL'))
+RABBITMQ_HOST = os.environ.get('RABBITMQ_HOST')
+RABBITMQ_PORT = os.environ.get('RABBITMQ_PORT')
+RABBITMQ_USER = os.environ.get('RABBITMQ_USER')
+RABBITMQ_PASS = os.environ.get('RABBITMQ_PASS')
+RABBITMQ_CRAWLER_QUEUE = 'crawler_tasks'
+RABBITMQ_SAVER_QUEUE = 'saver_tasks'
 
-RedisConfig = {
-    'host': REDIS_HOST,
-    'port': REDIS_PORT,
-    'decode_responses': True
+RABBIT_CONF = {
+    'host': RABBITMQ_HOST,
+    'port': RABBITMQ_PORT,
 }
+RABBIT_AUTH = {
+    'username': RABBITMQ_USER,
+    'password': RABBITMQ_PASS
+}
+
 
 USER_PARAMS = {
     'q': 'memberIdentity',
@@ -30,14 +37,3 @@ SEARCH_PARAMS = {
     'queryContext': 'List(spellCorrectionEnabled->true,relatedSearchesEnabled->true,kcardTypes->PROFILE|COMPANY|JOB_TITLE)'
 }
 
-COMPANY_PARAMS = {
-    'decorationId': 'com.linkedin.voyager.deco.organization.web.WebFullCompanyMain-28',
-    'q': 'universalName',
-    'universalName': ''
-}
-
-POST_PARAMS = {
-    'count': '100',
-    'q': 'companyRelevanceFeed',
-    'companyIdOrUniversalName': ''
-}
