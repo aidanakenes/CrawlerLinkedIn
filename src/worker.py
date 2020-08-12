@@ -3,7 +3,10 @@ import json
 import pika
 
 from src.utils.conf import RABBIT_CONF, RABBIT_AUTH, RABBITMQ_CRAWLER_QUEUE, RABBITMQ_SAVER_QUEUE
+from src.utils.logger import get_logger
 from src.service.crawler_user import LICrawler
+
+logger = get_logger(__name__)
 
 
 class Worker:
@@ -28,7 +31,8 @@ class Worker:
 
     def publish_to_saver_queue(self, ch, method, properties, body):
         user_id = body.decode('utf-8')
-        print(f'Received {user_id}')
+        logger.info(f'[x] Received {user_id}')
+        logger.info(f'[x] Publishing tasks to saver_queue')
         user = LICrawler().get_user_by_id(user_id=user_id)
         self.channel.basic_publish(
             exchange='',

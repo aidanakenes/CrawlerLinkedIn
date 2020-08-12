@@ -1,7 +1,10 @@
 import pika
 
 from src.utils.conf import RABBIT_CONF, RABBIT_AUTH, RABBITMQ_CRAWLER_QUEUE
+from src.utils.logger import get_logger
 from src.service.collector import IDCollector
+
+logger = get_logger(__name__)
 
 
 class Publisher:
@@ -16,6 +19,7 @@ class Publisher:
 
     def publish_to_crawler_queue(self, fullname: str):
         users_id = IDCollector().collect_id(fullname=fullname)
+        logger.info(f'[x] Publishing tasks to crawler_queue')
         for user_id in users_id:
             self.channel.basic_publish(
                 exchange='',

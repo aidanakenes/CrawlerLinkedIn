@@ -3,8 +3,11 @@ import json
 import pika
 
 from src.utils.conf import RABBIT_CONF, RABBIT_AUTH, RABBITMQ_SAVER_QUEUE
+from src.utils.logger import get_logger
 from src.db.db_user import DBUser
 from src.models.user import User
+
+logger = get_logger(__name__)
 
 
 class Consumer:
@@ -27,10 +30,9 @@ class Consumer:
     @staticmethod
     def callback(ch, method, properties, body):
         user = json.loads(json.loads(body))
-        print(f"Received {json.dumps(user, ensure_ascii=False, indent=4, sort_keys=True)}")
+        logger.info(f"[x] Received {user.user_id}")
         DBUser().insert_user(User(**user))
         ch.basic_ack(delivery_tag=method.delivery_tag)
-
 
 
 if __name__ == '__main__':
