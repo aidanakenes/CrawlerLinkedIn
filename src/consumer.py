@@ -25,7 +25,7 @@ class Consumer:
         try:
             self.channel.start_consuming()
         except KeyboardInterrupt:
-            print("[x] May the force be with you!")
+            logger.info("[x] May the force be with you!")
 
     @staticmethod
     def callback(ch, method, properties, body):

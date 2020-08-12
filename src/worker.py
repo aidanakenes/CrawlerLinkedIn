@@ -27,7 +27,7 @@ class Worker:
         try:
             self.channel.start_consuming()
         except KeyboardInterrupt:
-            print("[x] May the force be with you!")
+            logger.info("[x] May the force be with you!")
 
     def publish_to_saver_queue(self, ch, method, properties, body):
         user_id = body.decode('utf-8')
