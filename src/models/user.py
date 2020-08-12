@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class Education(BaseModel):
-    school: Optional[str]
+    school: str
     degree: Optional[str]
     start: Optional[int]
     end: Optional[int]
