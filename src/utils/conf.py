@@ -30,10 +30,10 @@ USER_PARAMS = {
 SEARCH_PARAMS = {
     'start': '0',
     'count': '10',
-    'filters': 'List(resultType->PEOPLE)',
+    'filters': 'List(resultType->PEOPLE,firstName->,lastName->)',
     'keywords': '',
-    'origin': 'GLOBAL_SEARCH_HEADER',
+    'origin': 'FACETED_SEARCH',
     'q': 'all',
-    'queryContext': 'List(spellCorrectionEnabled->true,relatedSearchesEnabled->true,kcardTypes->PROFILE|COMPANY|JOB_TITLE)'
+    'queryContext': 'List(spellCorrectionEnabled->true,relatedSearchesEnabled->true)'
 }
 

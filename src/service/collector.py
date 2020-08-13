@@ -4,7 +4,7 @@ import requests
 
 from src.utils.conf import HEADERS, COOKIES, SEARCH_PARAMS
 from src.utils.logger import get_logger
-from src.utils.err_utils import DoesNotExist, ApplicationError
+from src.utils.err_utils import ApplicationError
 
 logger = get_logger(__name__)
 
@@ -18,18 +18,16 @@ class IDCollector:
         """
         Return list of users' id according to the given fullname
         """
-        users_data = []
         for data in self._get_all_results(fullname):
             for user in data:
                 if user.get('firstName') or user.get('lastName'):
-                    users_data.append(user.get('publicIdentifier'))
-        return users_data
+                    yield user.get('publicIdentifier')
 
     def _get_all_results(self, fullname: str):
         """
         Go through all pages and get users' data
         """
-        self.params['keywords'] = fullname
+        self.prepare_params(fullname)
         self.params['start'] = 0
         self.params['count'] = 49
         total = self.params['count'] + 1
@@ -42,7 +40,22 @@ class IDCollector:
                 yield response_json['included']
                 self.params['start'] += self.params['count']
         except KeyError:
-            raise DoesNotExist()
+            pass
+            # raise DoesNotExist()
+
+    def prepare_params(self, fullname: str):
+        """
+        Put fullname into search filter
+        """
+        self.params['keywords'] = fullname
+        fullname = fullname.split()
+        first_name = fullname[0]
+        last_name = " ".join(fullname[1:len(fullname)])
+        search_filter = self.params['filters']
+        first_name_index = search_filter.find('firstName->') + len('firstName->')
+        last_name_index = search_filter.find(',lastName->') + len(',lastName->')
+        self.params['filters'] = f"{search_filter[0:first_name_index]}{first_name}" \
+                                 f"{search_filter[first_name_index:last_name_index]}{last_name})"
 
     def _make_request(self):
         """
@@ -64,6 +77,3 @@ class IDCollector:
         except TimeoutError or ConnectionError as e:
             logger.error(f'Failed to connect to LinkedIn: {type(e)}')
             raise ApplicationError()
-
-
-
