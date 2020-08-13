@@ -4,7 +4,7 @@ import requests
 
 from src.utils.conf import HEADERS, COOKIES, SEARCH_PARAMS
 from src.utils.logger import get_logger
-from src.utils.err_utils import NotFound, ApplicationError
+from src.utils.err_utils import DoesNotExist, ApplicationError
 
 logger = get_logger(__name__)
 
@@ -12,10 +12,11 @@ logger = get_logger(__name__)
 class IDCollector:
     def __init__(self):
         self._request_search = 'https://www.linkedin.com/voyager/api/search/blended'
+        self.params = SEARCH_PARAMS
 
     def collect_id(self, fullname: str):
         """
-        Return list of users' id with the given fullname
+        Return list of users' id according to the given fullname
         """
         users_data = []
         for data in self._get_all_results(fullname):
@@ -28,53 +29,41 @@ class IDCollector:
         """
         Go through all pages and get users' data
         """
-        SEARCH_PARAMS['keywords'] = fullname
-        total = self._get_results_num()
-        logger.info(f"Extracting raw json data for users with fullname {fullname}, total: {total}")
-        SEARCH_PARAMS['start'] = 0
-        for start in range(0, total, int(SEARCH_PARAMS['count'])):
-            yield self._extract_raw_json()
-            SEARCH_PARAMS['start'] = str(start)
-
-    def _get_results_num(self) -> int:
-        """
-        Return total number of results
-        """
+        self.params['keywords'] = fullname
+        self.params['start'] = 0
+        self.params['count'] = 49
+        total = self.params['count'] + 1
+        logger.info(f"Extracting raw json data for users with fullname {fullname}")
         try:
-            response = self._make_request()
-            response_json = json.loads(response.text)['data']['metadata']
-            if 'totalResultCount' not in response_json.keys():
-                raise NotFound()
-            return response_json['totalResultCount']
-        except ConnectionError or TimeoutError as e:
-            logger.error(f'Failed to connect to LinkedIn: {type(e)}')
-            raise ApplicationError()
+            while self.params['start'] < total:
+                response = self._make_request()
+                response_json = json.loads(response.text)
+                total = response_json['data']['metadata']['totalResultCount']
+                yield response_json['included']
+                self.params['start'] += self.params['count']
+        except KeyError:
+            raise DoesNotExist()
 
     def _make_request(self):
         """
         Send GET request to search users
         """
         try:
-            return requests.get(
-                self._request_search,
-                headers=HEADERS,
-                params=SEARCH_PARAMS,
-                cookies=COOKIES,
-                timeout=10
-            )
-        except TimeoutError as e:
-            logger.error(f'Failed to find users: {type(e)}')
-            raise NotFound()
-        except ConnectionError as e:
+            retries = 3
+            while retries:
+                response = requests.get(
+                    self._request_search,
+                    headers=HEADERS,
+                    params=self.params,
+                    cookies=COOKIES,
+                    timeout=10
+                )
+                if response.ok:
+                    return response
+                retries -= 1
+        except TimeoutError or ConnectionError as e:
             logger.error(f'Failed to connect to LinkedIn: {type(e)}')
             raise ApplicationError()
 
-    def _extract_raw_json(self):
-        """
-        Extract raw json data of users
-        """
-        response = self._make_request()
-        if response.ok:
-            return json.loads(response.text)['included']
 
 
