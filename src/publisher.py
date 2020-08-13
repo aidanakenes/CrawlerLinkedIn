@@ -18,9 +18,8 @@ class Publisher:
         self.channel = self.connection.channel()
 
     def publish_to_crawler_queue(self, fullname: str):
-        users_id = IDCollector().collect_id(fullname=fullname)
         logger.info(f'[x] Publishing tasks to crawler_queue')
-        for user_id in users_id:
+        for user_id in IDCollector().collect_id(fullname=fullname):
             self.channel.basic_publish(
                 exchange='',
                 routing_key=RABBITMQ_CRAWLER_QUEUE,

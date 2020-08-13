@@ -30,7 +30,7 @@ class Consumer:
     @staticmethod
     def callback(ch, method, properties, body):
         user = json.loads(json.loads(body))
-        logger.info(f"[x] Received {user.user_id}")
+        logger.info(f"[x] Received {user.get('user_id')}")
         DBUser().insert_user(User(**user))
         ch.basic_ack(delivery_tag=method.delivery_tag)
 

@@ -34,11 +34,12 @@ class Worker:
         logger.info(f'[x] Received {user_id}')
         logger.info(f'[x] Publishing tasks to saver_queue')
         user = LICrawler().get_user_by_id(user_id=user_id)
-        self.channel.basic_publish(
-            exchange='',
-            routing_key=RABBITMQ_SAVER_QUEUE,
-            body=json.dumps(json.dumps(user.dict(), ensure_ascii=False))
-        )
+        if user:
+            self.channel.basic_publish(
+                exchange='',
+                routing_key=RABBITMQ_SAVER_QUEUE,
+                body=json.dumps(json.dumps(user.dict(), ensure_ascii=False))
+            )
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
