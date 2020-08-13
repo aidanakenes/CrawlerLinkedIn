@@ -84,17 +84,19 @@ class LICrawler:
                     user_data['location'] = d.get('locationName')
                     user_data['profile_pic_url'] = self._get_profile_pic(data=d)
                 if 'schoolUrn' in d.keys():
-                    date_range = d.get('dateRange')
-                    start = end = None
-                    if date_range:
-                        start = date_range.get('start').get('year') if 'start' in date_range.keys() else None
-                        end = date_range.get('end').get('year') if 'end' in date_range.keys() else None
-                    education.append(Education(
-                        school=d.get('schoolName'),
-                        degree=d.get('degreeName'),
-                        start=start,
-                        end=end
-                    ))
+                    school = d.get('schoolName')
+                    if school:
+                        date_range = d.get('dateRange')
+                        start = end = None
+                        if date_range:
+                            start = date_range.get('start').get('year') if 'start' in date_range.keys() else None
+                            end = date_range.get('end').get('year') if 'end' in date_range.keys() else None
+                        education.append(Education(
+                            school=school,
+                            degree=d.get('degreeName'),
+                            start=start,
+                            end=end
+                        ))
                 if 'title' in d.keys():
                     company = d.get('companyName')
                     if company:
