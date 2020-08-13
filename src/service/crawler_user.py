@@ -6,7 +6,7 @@ from pydantic.error_wrappers import ValidationError
 
 from src.models.user import User, Education, Experience
 from src.utils.logger import get_logger
-from src.utils.err_utils import ApplicationError, NotFound
+from src.utils.err_utils import ApplicationError, DoesNotExist
 from src.utils.conf import HEADERS, COOKIES, USER_PARAMS
 
 logger = get_logger(__name__)
@@ -17,6 +17,7 @@ class LICrawler:
     def __init__(self):
         self.li_user_home = 'https://www.linkedin.com/in/'
         self._request_url = 'https://www.linkedin.com/voyager/api/identity/dash/profiles'
+        self.params = USER_PARAMS
 
     def get_user_by_id(self, user_id: str):
         """
@@ -26,7 +27,7 @@ class LICrawler:
         try:
             raw_data = self._extract_raw_json(user_id=user_id)
             if raw_data is None:
-                raise NotFound()
+                raise DoesNotExist()
             user_data = self._collect_data(data=raw_data)
             user_data['user_id'] = user_id
             user_data['user_url'] = f'{self.li_user_home}{user_id}'
@@ -39,7 +40,7 @@ class LICrawler:
         """
         Extract raw json data of user
         """
-        USER_PARAMS['memberIdentity'] = user_id
+        self.params['memberIdentity'] = user_id
         logger.info(f'Extracting data for {user_id}')
         response = self._make_request(user_id)
         if response.ok:
@@ -50,17 +51,19 @@ class LICrawler:
         Send GET request to user's page
         """
         try:
-            return requests.get(
-                self._request_url,
-                headers=HEADERS,
-                params=USER_PARAMS,
-                cookies=COOKIES,
-                timeout=10
-            )
-        except TimeoutError as e:
-            logger.error(f'Failed to find user {user_id}: {type(e)}')
-            raise NotFound()
-        except ConnectionError as e:
+            retries = 3
+            while retries:
+                response = requests.get(
+                    self._request_url,
+                    headers=HEADERS,
+                    params=self.params,
+                    cookies=COOKIES,
+                    timeout=10
+                )
+                if response.ok:
+                    return response
+                retries -= 1
+        except TimeoutError or ConnectionError as e:
             logger.error(f'Failed to connect to LinkedIn: {type(e)}')
             raise ApplicationError()
 

@@ -14,11 +14,11 @@ class ApplicationError(CustomException):
         self.message = 'APIError'
 
 
-class NotFound(CustomException):
+class DoesNotExist(CustomException):
     def __init__(self):
         super().__init__()
-        self.code = HTTPStatus.NOT_FOUND
-        self.message = 'Not Found'
+        self.code = HTTPStatus.OK
+        self.message = 'User does not exist'
 
 
 class ValidationError(CustomException):
