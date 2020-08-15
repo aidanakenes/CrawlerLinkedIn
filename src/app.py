@@ -15,7 +15,7 @@ app = FastAPI()
 @app.get('/linkedin/profile')
 async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a-z0-9-]{1,128}$')):
     with Publisher() as publisher:
-        publisher.publish_to_crawler_by_id(user_id=user_id)
+        publisher.publish_to_crawler_id(user_id=user_id)
     user = DBUser().get_user_by_id(user_id=user_id)
     return JSONResponse(
         content=jsonable_encoder({'data': user})
