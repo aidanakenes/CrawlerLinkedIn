@@ -7,6 +7,7 @@ Base = declarative_base()
 class UserTable(Base):
     __tablename__ = 'user'
     user_id = Column(String, primary_key=True)
+    user_url = Column(String)
     fullname = Column(String)
     profile_pic_url = Column(String)
     location = Column(String)

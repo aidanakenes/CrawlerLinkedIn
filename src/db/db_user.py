@@ -1,8 +1,10 @@
+from typing import List, Optional
+
 from sqlalchemy import create_engine
-from sqlalchemy import MetaData, Table, Column, String, INT, ForeignKey, VARCHAR
+from sqlalchemy import MetaData
 from sqlalchemy.exc import OperationalError, IntegrityError
 
-from src.models.user import User
+from src.models.user import User, Education, Experience
 from src.db.tables import UserTable, EducationTable, ExperienceTable, SkillTable
 from src.utils.conf import ENGINE
 from src.utils.logger import get_logger
@@ -35,6 +37,7 @@ class DBUser:
             with self._engine.connect() as con:
                 stmt = self._table_user.__table__.insert().values(
                     user_id=user.user_id,
+                    user_url=user.user_url,
                     fullname=user.fullname,
                     profile_pic_url=user.profile_pic_url,
                     location=user.location,
@@ -83,4 +86,82 @@ class DBUser:
             logger.error(f'Failed to save education, experience, skills data for {user.user_id}: {type(e)}')
             raise ApplicationError()
 
+    def get_user_by_id(self, user_id: str) -> Optional[User]:
+        with self._engine.connect() as con:
+            stmt = self._table_user.__table__.select().where(self._table_user.user_id == user_id)
+            result = con.execute(stmt)
+            if result is None:
+                return
+            result = result.fetchall()[0]
+            return User(
+                user_id=user_id,
+                user_url=result[1],
+                fullname=result[2],
+                profile_pic_url=result[3],
+                location=result[4],
+                heading=result[5],
+                education=self.get_education(user_id),
+                experience=self.get_experience(user_id),
+                skill=self.get_skills(user_id)
+            )
 
+    def get_users_by_fullname(self, fullname: str) -> Optional[List[User]]:
+        users = []
+        fullname = [fn.lower().capitalize() for fn in fullname.split()]
+        fullname = " ".join(fullname)
+        with self._engine.connect() as con:
+            stmt = self._table_user.__table__.select().where(
+                self._table_user.fullname == fullname
+            )
+            result = con.execute(stmt)
+            if result is None:
+                return
+            result = result.fetchall()
+            for user in result:
+                users.append(self.get_user_by_id(user[0]))
+        return users
+
+    def get_skills(self, user_id: str) -> Optional[List[str]]:
+        with self._engine.connect() as con:
+            stmt = self._table_user.__table__.join(
+                self._table_skills,
+                self._table_user.user_id == self._table_skills.user_id
+            ).select().where(self._table_user.user_id == user_id)
+            result = con.execute(stmt)
+            result = result.fetchall()
+            skills = [skill[-1] for skill in result]
+        return skills
+
+    def get_education(self, user_id) -> Optional[List[Education]]:
+        education = []
+        with self._engine.connect() as con:
+            stmt = self._table_user.__table__.join(
+                self._table_education,
+                self._table_user.user_id == self._table_education.user_id
+            ).select().where(self._table_user.user_id == user_id)
+            result = con.execute(stmt)
+            for edu in result:
+                education.append(Education(
+                    school=edu[-4],
+                    degree=edu[-3],
+                    start=edu[-2],
+                    end=edu[-1]
+                ))
+        return education
+
+    def get_experience(self, user_id: str) -> Optional[List[Experience]]:
+        experience = []
+        with self._engine.connect() as con:
+            stmt = self._table_user.__table__.join(
+                self._table_experience,
+                self._table_user.user_id == self._table_experience.user_id
+            ).select().where(self._table_user.user_id == user_id)
+            result = con.execute(stmt)
+            for exp in result:
+                experience.append(Experience(
+                    company=exp[-4],
+                    position=exp[-3],
+                    start=exp[-2],
+                    end=exp[-1]
+                ))
+        return experience
