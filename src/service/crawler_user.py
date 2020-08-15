@@ -6,8 +6,9 @@ from pydantic.error_wrappers import ValidationError
 
 from src.models.user import User, Education, Experience
 from src.utils.logger import get_logger
+from src.utils.decorators import retry
 from src.utils.err_utils import ApplicationError, DoesNotExist
-from src.utils.conf import HEADERS, COOKIES, USER_PARAMS
+from src.utils.conf import HEADERS, COOKIES, USER_REQUEST_PARAMS, USER_REQUEST_URL
 
 logger = get_logger(__name__)
 
@@ -16,13 +17,15 @@ class LICrawler:
 
     def __init__(self):
         self.li_user_home = 'https://www.linkedin.com/in/'
-        self._request_url = 'https://www.linkedin.com/voyager/api/identity/dash/profiles'
-        self.params = USER_PARAMS
+        self.headers = HEADERS
+        self.cookies = COOKIES
+        self._request_url = USER_REQUEST_URL
+        self.params = USER_REQUEST_PARAMS
 
     def get_user_by_id(self, user_id: str):
         """
-        Get user's profile data by public id
-        and return User object
+            Get user's profile data by public id
+            and return User object
         """
         try:
             raw_data = self._extract_raw_json(user_id=user_id)
@@ -38,43 +41,39 @@ class LICrawler:
 
     def _extract_raw_json(self, user_id: str):
         """
-        Extract raw json data of user
+            Extract user's raw json
         """
         self.params['memberIdentity'] = user_id
+        response = self._make_request()
         logger.info(f'Extracting data for {user_id}')
-        response = self._make_request(user_id)
-        if response.ok:
-            return json.loads(response.text).get('included')
+        return json.loads(response.text).get('included')
 
-    def _make_request(self, user_id):
+    @retry(logger=logger, exc_to_check=(ConnectionError, TimeoutError), tries=1, delay=2)
+    def _make_request(self):
         """
-        Send GET request to user's page
+            Send GET request to user's page
         """
-        try:
-            retries = 3
-            while retries:
-                response = requests.get(
-                    self._request_url,
-                    headers=HEADERS,
-                    params=self.params,
-                    cookies=COOKIES,
-                    timeout=10
-                )
-                if response.ok:
-                    return response
-                retries -= 1
-        except TimeoutError or ConnectionError as e:
-            logger.error(f'Failed to connect to LinkedIn: {type(e)}')
+        response = requests.get(
+            self._request_url,
+            headers=self.headers,
+            cookies=self.cookies,
+            params=self.params,
+            timeout=10
+        )
+        if response.status_code == 429:
+            logger.error('Authorization failed')
             raise ApplicationError()
+        if response.ok:
+            return response
 
     def _collect_data(self, data: dict) -> Dict:
         """
-        Collect all necessary data for user from raw json
+            Collect all necessary data for user from raw json
         """
         user_data = {}
         education = []
         experience = []
-        skills = []
+        skill = []
 
         try:
             for d in data:
@@ -86,11 +85,11 @@ class LICrawler:
                 if 'schoolUrn' in d.keys():
                     school = d.get('schoolName')
                     if school:
-                        date_range = d.get('dateRange')
+                        date_range = d['dateRange']
                         start = end = None
                         if date_range:
-                            start = date_range.get('start').get('year') if 'start' in date_range.keys() else None
-                            end = date_range.get('end').get('year') if 'end' in date_range.keys() else None
+                            start = date_range['start']['year'] if 'start' in date_range.keys() else None
+                            end = date_range['end']['year'] if 'end' in date_range.keys() else None
                         education.append(Education(
                             school=school,
                             degree=d.get('degreeName'),
@@ -100,23 +99,23 @@ class LICrawler:
                 if 'title' in d.keys():
                     company = d.get('companyName')
                     if company:
-                        date_range = d.get('dateRange')
+                        date_range = d['dateRange']
                         start = end = None
                         if date_range:
-                            start = date_range.get('start') if 'start' in date_range.keys() else None
-                            end = date_range.get('end') if 'end' in date_range.keys() else None
+                            start = date_range['start']['year'] if 'start' in date_range.keys() else None
+                            end = date_range['end']['year'] if 'end' in date_range.keys() else None
                         experience.append(Experience(
                             company=d.get('companyName'),
                             position=d.get('title'),
-                            start=start.get('year') if start else None,
-                            end=end.get('year') if end else None
+                            start=start,
+                            end=end
                         ))
-                if 'fsd_skill' in d.get('entityUrn'):
-                    skills.append(d.get('name'))
+                if 'fsd_skill' in d['entityUrn']:
+                    skill.append(d.get('name'))
 
                 user_data['experience'] = experience
                 user_data['education'] = education
-                user_data['skills'] = skills
+                user_data['skill'] = skill
             return user_data
         except AttributeError or Exception as e:
             logger.error(f"Failed to parse data: {type(e)}")
@@ -125,12 +124,11 @@ class LICrawler:
     @staticmethod
     def _get_profile_pic(data: dict) -> Optional[str]:
         """
-        Extract profile picture with the highest quality
+            Extract profile picture with the highest quality
         """
         if data.get('profilePicture') is None:
             return
-        root_url = data.get('profilePicture').get('displayImageReference').get('vectorImage').get('rootUrl')
-        size = data.get('profilePicture').get('displayImageReference').get('vectorImage').get('artifacts')[
-            -1].get(
-            'fileIdentifyingUrlPathSegment')
+        picture = data['profilePicture']['displayImageReference']['vectorImage']
+        root_url = picture['rootUrl']
+        size = picture['artifacts'][-1].get('fileIdentifyingUrlPathSegment')
         return f'{root_url}{size}'
