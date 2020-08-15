@@ -1,8 +1,9 @@
 from sqlalchemy import create_engine
 from sqlalchemy import MetaData, Table, Column, String, INT, ForeignKey, VARCHAR
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, IntegrityError
 
 from src.models.user import User
+from src.db.tables import UserTable, EducationTable, ExperienceTable, SkillTable
 from src.utils.conf import ENGINE
 from src.utils.logger import get_logger
 from src.utils.err_utils import ApplicationError
@@ -15,47 +16,26 @@ class DBUser:
     def __init__(self):
         self._engine = create_engine(ENGINE, client_encoding='utf8')
         self._metadata = MetaData(self._engine)
-        self.table = Table('users', self._metadata,
-                           Column('user_id', String, primary_key=True),
-                           Column('full_name', String),
-                           Column('profile_pic_url', String),
-                           Column('location', String),
-                           Column('heading', String)
-                           )
-        self._table_education = Table('education', self._metadata,
-                                      Column('user_id', String, ForeignKey("users.user_id"), nullable=False),
-                                      Column('school', String),
-                                      Column('degree', VARCHAR),
-                                      Column('start', INT),
-                                      Column('end', INT)
-                                      )
-        self._table_experience = Table('experience', self._metadata,
-                                       Column('user_id', String, ForeignKey("users.user_id"), nullable=False),
-                                       Column('company', VARCHAR),
-                                       Column('position', VARCHAR),
-                                       Column('start', INT),
-                                       Column('end', INT)
-                                       )
-        self._table_skills = Table('skills', self._metadata,
-                                   Column('user_id', String, ForeignKey("users.user_id"), nullable=False),
-                                   Column('skill_name', String)
-                                   )
+        self._table_user = UserTable
+        self._table_education = EducationTable
+        self._table_experience = ExperienceTable
+        self._table_skills = SkillTable
 
-        if not self._engine.has_table('users'):
-            self.table.create()
+        if not self._engine.has_table('user'):
+            self._table_user.__table__.create(self._engine)
         if not self._engine.has_table('education'):
-            self._table_education.create()
+            self._table_education.__table__.create(self._engine)
         if not self._engine.has_table('experience'):
-            self._table_experience.create()
-        if not self._engine.has_table('skills'):
-            self._table_skills.create()
+            self._table_experience.__table__.create(self._engine)
+        if not self._engine.has_table('skill'):
+            self._table_skills.__table__.create(self._engine)
 
     def insert_user(self, user: User):
         try:
             with self._engine.connect() as con:
-                stmt = self.table.insert().values(
+                stmt = self._table_user.__table__.insert().values(
                     user_id=user.user_id,
-                    full_name=user.fullname,
+                    fullname=user.fullname,
                     profile_pic_url=user.profile_pic_url,
                     location=user.location,
                     heading=user.heading
@@ -66,8 +46,8 @@ class DBUser:
         except OperationalError as e:
             logger.error(f'Failed to save data for {user.user_id}: {type(e)}')
             raise ApplicationError()
-        except Exception:
-            print('Oops')
+        except IntegrityError:
+            logger.warn(f'User {user.user_id} has already exist in the database')
             pass
 
     def insert_relations(self, user: User):
@@ -75,7 +55,7 @@ class DBUser:
             with self._engine.connect() as con:
                 logger.info(f'Saving education, experience, skills data for {user.user_id} into db')
                 for edu in user.education:
-                    stmt = self._table_education.insert().values(
+                    stmt = self._table_education.__table__.insert().values(
                         user_id=user.user_id,
                         school=edu.school,
                         degree=edu.degree,
@@ -84,7 +64,7 @@ class DBUser:
                     )
                     con.execute(stmt)
                 for exp in user.experience:
-                    stmt = self._table_experience.insert().values(
+                    stmt = self._table_experience.__table__.insert().values(
                         user_id=user.user_id,
                         company=exp.company,
                         position=exp.position,
@@ -92,8 +72,8 @@ class DBUser:
                         end=exp.end
                     )
                     con.execute(stmt)
-                for skill in user.skills:
-                    stmt = self._table_skills.insert().values(
+                for skill in user.skill:
+                    stmt = self._table_skills.__table__.insert().values(
                         user_id=user.user_id,
                         skill_name=skill
                     )
@@ -102,6 +82,5 @@ class DBUser:
         except OperationalError as e:
             logger.error(f'Failed to save education, experience, skills data for {user.user_id}: {type(e)}')
             raise ApplicationError()
-        except Exception:
-            print('Oops')
-            pass
+
+
