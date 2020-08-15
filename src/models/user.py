@@ -26,4 +26,4 @@ class User(BaseModel):
     heading: Optional[str]
     education: List[Education]
     experience: List[Experience]
-    skills: List[str]
+    skill: List[str]
