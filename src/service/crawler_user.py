@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 class LICrawler:
 
     def __init__(self):
-        self.li_user_home = 'https://www.linkedin.com/in/'
+        self.li_home = 'https://www.linkedin.com/in/'
         self.headers = HEADERS
         self.cookies = COOKIES
         self._request_url = USER_REQUEST_URL
@@ -33,7 +33,7 @@ class LICrawler:
                 raise DoesNotExist()
             user_data = self._collect_data(data=raw_data)
             user_data['user_id'] = user_id
-            user_data['user_url'] = f'{self.li_user_home}{user_id}'
+            user_data['user_url'] = f"{self.li_home}{user_id}"
             logger.info(f"Returning the LIUserCrawler's result for user {user_id}")
             return User(**user_data)
         except ValidationError as e:
@@ -78,14 +78,15 @@ class LICrawler:
         try:
             for d in data:
                 if 'birthDateOn' in d.keys():
-                    user_data['fullname'] = f"{d.get('firstName')} {d.get('lastName')}"
+                    user_data['fullname'] = f"{d.get('firstName').lower().capitalize()} " \
+                                            f"{d.get('lastName').lower().capitalize()}"
                     user_data['heading'] = d.get('headline')
                     user_data['location'] = d.get('locationName')
                     user_data['profile_pic_url'] = self._get_profile_pic(data=d)
                 if 'schoolUrn' in d.keys():
                     school = d.get('schoolName')
                     if school:
-                        date_range = d['dateRange']
+                        date_range = d.get('dateRange')
                         start = end = None
                         if date_range:
                             start = date_range['start']['year'] if 'start' in date_range.keys() else None
@@ -99,7 +100,7 @@ class LICrawler:
                 if 'title' in d.keys():
                     company = d.get('companyName')
                     if company:
-                        date_range = d['dateRange']
+                        date_range = d.get('dateRange')
                         start = end = None
                         if date_range:
                             start = date_range['start']['year'] if 'start' in date_range.keys() else None

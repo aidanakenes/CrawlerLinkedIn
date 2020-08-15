@@ -23,13 +23,13 @@ class Worker:
         self.channel.queue_declare(queue=RABBITMQ_SAVER_QUEUE)
 
     def consume_from_crawler_queue(self):
-        self.channel.basic_consume(RABBITMQ_CRAWLER_QUEUE, self.publish_to_saver_queue, auto_ack=False)
+        self.channel.basic_consume(RABBITMQ_CRAWLER_QUEUE, self.callback, auto_ack=False)
         try:
             self.channel.start_consuming()
         except KeyboardInterrupt:
             logger.info("[x] May the force be with you!")
 
-    def publish_to_saver_queue(self, ch, method, properties, body):
+    def callback(self, ch, method, properties, body):
         user_id = body.decode('utf-8')
         logger.info(f'[x] Received {user_id}')
         logger.info(f'[x] Publishing tasks to saver_queue')
