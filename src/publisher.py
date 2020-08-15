@@ -17,7 +17,21 @@ class Publisher:
         self.connection = pika.BlockingConnection(parameters=parameters)
         self.channel = self.connection.channel()
 
-    def publish_to_crawler_queue(self, fullname: str):
+    def __enter__(self):
+        return Publisher()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.connection.close()
+
+    def publish_to_crawler_id(self, user_id: str):
+        logger.info(f'[x] Publishing task to crawler_queue')
+        self.channel.basic_publish(
+            exchange='',
+            routing_key=RABBITMQ_CRAWLER_QUEUE,
+            body=user_id
+        )
+
+    def publish_to_crawler_fullname(self, fullname: str):
         logger.info(f'[x] Publishing tasks to crawler_queue')
         for user_id in IDCollector().collect_id(fullname=fullname):
             self.channel.basic_publish(
@@ -25,8 +39,4 @@ class Publisher:
                 routing_key=RABBITMQ_CRAWLER_QUEUE,
                 body=user_id
             )
-        self.connection.close()
 
-
-if __name__ == '__main__':
-    Publisher().publish_to_crawler_queue('aidana ken')

@@ -3,9 +3,9 @@ from fastapi import FastAPI, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-
-from src.service.collector import IDCollector
+from src.models.user import User, Education, Experience
 from src.service.crawler_user import LICrawler
+from src.publisher import Publisher
 from src.db.db_user import DBUser
 from src.utils.err_utils import ValidationError, IDValidationError, CustomException
 
@@ -14,9 +14,9 @@ app = FastAPI()
 
 @app.get('/linkedin/profile')
 async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a-z0-9-]{1,128}$')):
-    user = LICrawler().get_user_by_id(user_id=user_id)
-    if user:
-        DBUser().insert_user(user)
+    with Publisher() as publisher:
+        publisher.publish_to_crawler_by_id(user_id=user_id)
+    user = DBUser().get_user_by_id(user_id=user_id)
     return JSONResponse(
         content=jsonable_encoder({'data': user})
     )
@@ -24,14 +24,13 @@ async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a
 
 @app.get('/linkedin/search')
 async def get(fullname: str):
-    if not len(fullname.split()) > 1:
+    if len(fullname.split()) <= 1:
         raise ValidationError()
-    users_id = IDCollector().collect_id(fullname=fullname)
-    _users = []
-    for user_id in users_id:
-        _users.append(LICrawler().get_user_by_id(user_id=user_id))
+    with Publisher() as publisher:
+        publisher.publish_to_crawler_fullname(fullname=fullname)
+    users: DBUser().get_users_by_fullname(fullname) = []
     return JSONResponse(
-        content=jsonable_encoder({'total': len(_users), 'data': _users})
+        content=jsonable_encoder({'total': len(users), 'data': users})
     )
 
 
