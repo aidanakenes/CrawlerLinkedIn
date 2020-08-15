@@ -3,7 +3,8 @@ import os
 
 DB_PASS = os.environ.get('POSTGRE_PASS')
 DB_NAME = os.environ.get('POSTGRE_DB')
-ENGINE = f"postgresql://postgres:{DB_PASS}@localhost/{DB_NAME}"
+DB_HOST = os.environ.get('POSTGRE_HOST')
+ENGINE = f"postgresql://postgres:{DB_PASS}@{DB_HOST}/{DB_NAME}"
 RABBITMQ_HOST = os.environ.get('RABBITMQ_HOST')
 RABBITMQ_PORT = os.environ.get('RABBITMQ_PORT')
 RABBITMQ_USER = os.environ.get('RABBITMQ_USER')
@@ -20,20 +21,20 @@ RABBIT_AUTH = {
     'password': RABBITMQ_PASS
 }
 
-
-USER_PARAMS = {
+USER_REQUEST_URL = 'https://www.linkedin.com/voyager/api/identity/dash/profiles'
+USER_REQUEST_PARAMS = {
     'q': 'memberIdentity',
     'decorationId': 'com.linkedin.voyager.dash.deco.identity.profile.FullProfileWithEntities-53',
     'memberIdentity': ''
 }
 
-SEARCH_PARAMS = {
+SEARCH_REQUEST_URL = 'https://www.linkedin.com/voyager/api/search/blended'
+SEARCH_REQUEST_PARAMS = {
     'start': '0',
     'count': '10',
-    'filters': 'List(resultType->PEOPLE,firstName->,lastName->)',
+    'filters': 'List(resultType->PEOPLE,firstName->{first_name},lastName->{last_name})',
     'keywords': '',
     'origin': 'FACETED_SEARCH',
     'q': 'all',
     'queryContext': 'List(spellCorrectionEnabled->true,relatedSearchesEnabled->true)'
 }
-
