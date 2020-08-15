@@ -34,9 +34,5 @@ class Publisher:
     def publish_to_crawler_fullname(self, fullname: str):
         logger.info(f'[x] Publishing tasks to crawler_queue')
         for user_id in IDCollector().collect_id(fullname=fullname):
-            self.channel.basic_publish(
-                exchange='',
-                routing_key=RABBITMQ_CRAWLER_QUEUE,
-                body=user_id
-            )
+            self.publish_to_crawler_id(user_id=user_id)
 
