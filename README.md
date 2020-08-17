@@ -51,7 +51,7 @@ Query parameters:<br/>
 }
 ```
 
-####2. GET: ``/linkedin/search``
+#### 2. GET: ``/linkedin/search``
 Query parameters:<br/>
  **fullname**: _*required_ (at least two words)<br/>
 
