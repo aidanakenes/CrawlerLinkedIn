@@ -1,9 +1,9 @@
 # LinkedIn Profile Crawler
-###Structure
+### Structure<br/>
  ![alt](https://github.com/aidanakenes/CrawlerLinkedIn/blob/dev/data/project_scheme.png) <br/>
-###**API Endpoints:**
+### **API Endpoints:**
 
-####1. GET: ``/linkedin/profile``
+#### 1. GET: ``/linkedin/profile``
 Query parameters:<br/>
  **user_id**: _*required_ (linkedin.com/in/**any-user-id**/)<br/>
 
