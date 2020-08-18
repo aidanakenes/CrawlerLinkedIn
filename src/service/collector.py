@@ -1,8 +1,9 @@
 import json
+import time
 
 import requests
 
-from src.utils.conf import HEADERS, COOKIES, SEARCH_REQUEST_PARAMS, SEARCH_REQUEST_URL
+from src.utils.conf import SearchRequest
 from src.utils.logger import get_logger
 from src.utils.decorators import retry
 from src.utils.err_utils import ApplicationError, DoesNotExist
@@ -12,10 +13,10 @@ logger = get_logger(__name__)
 
 class IDCollector:
     def __init__(self):
-        self._request_search = SEARCH_REQUEST_URL
-        self.params = SEARCH_REQUEST_PARAMS
-        self.headers = HEADERS
-        self.cookies = COOKIES
+        self._request_search = SearchRequest.URL
+        self.params = SearchRequest.PARAMS
+        self.headers = SearchRequest.HEADERS
+        self.cookies = SearchRequest.COOKIES
 
     def collect_id(self, fullname: str):
         """
@@ -38,6 +39,7 @@ class IDCollector:
             response = self._make_request()
             if response is None:
                 raise DoesNotExist()
+            time.sleep(2)
             response_json = json.loads(response.text)
             total = response_json['data']['metadata']['totalResultCount']
             yield response_json['included']
@@ -57,13 +59,17 @@ class IDCollector:
         """
             Send GET request to search users
         """
-        response = requests.get(
-            self._request_search,
-            headers=self.headers,
-            cookies=self.cookies,
-            params=self.params,
-            timeout=10
-        )
+        try:
+            response = requests.get(
+                self._request_search,
+                headers=self.headers,
+                cookies=self.cookies,
+                params=self.params,
+                timeout=10
+            )
+        except requests.exceptions.TooManyRedirects as e:
+            logger.error(f'Problems with cookies and headers')
+            raise ApplicationError()
         if response.status_code == 429:
             logger.error('Authorization failed')
             raise ApplicationError()

@@ -1,4 +1,5 @@
 import json
+import time
 
 import requests
 from typing import Optional, Dict, List
@@ -8,7 +9,7 @@ from src.models.user import User, Education, Experience
 from src.utils.logger import get_logger
 from src.utils.decorators import retry
 from src.utils.err_utils import ApplicationError, DoesNotExist
-from src.utils.conf import HEADERS, COOKIES, USER_REQUEST_PARAMS, USER_REQUEST_URL
+from src.utils.conf import UserRequest
 
 logger = get_logger(__name__)
 
@@ -17,10 +18,10 @@ class LICrawler:
 
     def __init__(self):
         self.li_home = 'https://www.linkedin.com/in/'
-        self.headers = HEADERS
-        self.cookies = COOKIES
-        self._request_url = USER_REQUEST_URL
-        self.params = USER_REQUEST_PARAMS
+        self.headers = UserRequest.HEADERS
+        self.cookies = UserRequest.COOKIES
+        self._request_url = UserRequest.URL
+        self.params = UserRequest.PARAMS
 
     def get_user_by_id(self, user_id: str):
         """
@@ -44,22 +45,28 @@ class LICrawler:
             Extract user's raw json
         """
         self.params['memberIdentity'] = user_id
+        time.sleep(2)
         response = self._make_request()
         logger.info(f'Extracting data for {user_id}')
-        return json.loads(response.text).get('included')
+        if response:
+            return json.loads(response.text).get('included')
 
-    @retry(logger=logger, exc_to_check=(ConnectionError, TimeoutError), tries=1, delay=2)
+    @retry(logger=logger, exc_to_check=(ConnectionError, TimeoutError), tries=2, delay=2)
     def _make_request(self):
         """
             Send GET request to user's page
         """
-        response = requests.get(
-            self._request_url,
-            headers=self.headers,
-            cookies=self.cookies,
-            params=self.params,
-            timeout=10
-        )
+        try:
+            response = requests.get(
+                self._request_url,
+                headers=self.headers,
+                cookies=self.cookies,
+                params=self.params,
+                timeout=10
+            )
+        except requests.exceptions.TooManyRedirects as e:
+            logger.error(f'Problems with cookies and headers')
+            raise ApplicationError()
         if response.status_code == 429:
             logger.error('Authorization failed')
             raise ApplicationError()
