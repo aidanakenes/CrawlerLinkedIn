@@ -1,0 +1,39 @@
+version: "3.0"
+services:
+  collector:
+    env_file: .env
+    depends_on:
+      - rabbit
+      - postgres
+      - redis
+      - crawler
+      - saver
+    build: .
+    command: "python3 ./src/collector/api.py"
+    ports:
+      - "8081:8080"
+
+  saver:
+    env_file: .env
+    depends_on:
+      - postgres
+    build: .
+    command: "python3 ./src/saver/consumer.py"
+
+  crawler:
+    env_file: .env
+    build: .
+    command: "python3 ./src/crawler/worker.py"
+
+  postgres:
+    image: postgres:latest
+    env_file: .env
+
+  rabbit:
+    image: rabbitmq:latest
+    env_file: .env
+
+  redis:
+    image: redis:latest
+    env_file: .env
+

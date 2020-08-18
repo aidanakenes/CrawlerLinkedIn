@@ -1,6 +1,6 @@
 # LinkedIn Profile Crawler
 ### Structure<br/>
- ![alt](https://github.com/aidanakenes/CrawlerLinkedIn/blob/dev/project_description_data/project_scheme.png) <br/>
+ ![alt](https://github.com/aidanakenes/CrawlerLinkedIn/blob/dev/docs/project_scheme.png) <br/>
 ### **API Endpoints:**
 
 #### 1. GET: ``/linkedin/profile``

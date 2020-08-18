@@ -18,7 +18,7 @@ class DoesNotExist(CustomException):
     def __init__(self):
         super().__init__()
         self.code = HTTPStatus.OK
-        self.message = 'Profile does not exist or has limited visibility'
+        self.message = 'Profile or profiles do not exist or have limited visibility'
 
 
 class ValidationError(CustomException):

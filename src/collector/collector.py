@@ -20,7 +20,7 @@ class IDCollector:
 
     def collect_id(self, fullname: str):
         """
-        Return generator of user' id filtered by the given fullname
+            Return generator of user' id filtered by the given fullname
         """
         for users in self._get_all_results(fullname):
             for user in users:
@@ -29,7 +29,7 @@ class IDCollector:
 
     def _get_all_results(self, fullname: str):
         """
-        Go through all pages and get users' data
+            Go through all pages and get users' data
         """
         self._prepare_params(fullname)
         self.params['start'], self.params['count'] = 0, 49
@@ -41,7 +41,9 @@ class IDCollector:
                 raise DoesNotExist()
             time.sleep(2)
             response_json = json.loads(response.text)
-            total = response_json['data']['metadata']['totalResultCount']
+            total = response_json['data']['metadata'].get('totalResultCount')
+            if total is None:
+                raise DoesNotExist()
             yield response_json['included']
             self.params['start'] += self.params['count']
 

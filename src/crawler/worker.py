@@ -4,8 +4,7 @@ import pika
 
 from src.utils.conf import RabbitMQ
 from src.utils.logger import get_logger
-from src.service.crawler_user import LICrawler
-from src.utils.err_utils import ApplicationError
+from src.crawler.crawler_user import LICrawler
 
 logger = get_logger(__name__)
 
@@ -33,11 +32,7 @@ class Worker:
     def callback(self, ch, method, properties, body):
         user_id = body.decode('utf-8')
         logger.info(f'[x] Received {user_id}')
-        try:
-            user = LICrawler().get_user_by_id(user_id=user_id)
-        except ApplicationError() as e:
-            logger.error(f'Failed to parse user {user_id}: {e}')
-            return
+        user = LICrawler().get_user_by_id(user_id=user_id)
         logger.info(f'[x] Publishing tasks to saver_queue')
         if user:
             self.channel.basic_publish(
@@ -45,8 +40,11 @@ class Worker:
                 routing_key=RabbitMQ.RABBITMQ_SAVER_QUEUE,
                 body=json.dumps(user.dict())
             )
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+            ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
 if __name__ == '__main__':
-    Worker().consume_from_crawler_queue()
+    try:
+        Worker().consume_from_crawler_queue()
+    except Exception as e:
+        logger.error(f'Worker died: {e}')

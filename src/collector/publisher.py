@@ -2,9 +2,12 @@ import pika
 
 from src.utils.conf import RabbitMQ
 from src.utils.logger import get_logger
-from src.service.collector import IDCollector
+from src.collector.collector import IDCollector
+from src.utils.task_manager import TaskManager, Task
 
 logger = get_logger(__name__)
+
+results_count = 0
 
 
 class Publisher:
@@ -32,6 +35,14 @@ class Publisher:
 
     def publish_to_crawler_fullname(self, fullname: str):
         logger.info(f'[x] Publishing tasks to crawler_queue')
+        global results_count
         for user_id in IDCollector().collect_id(fullname=fullname):
+            results_count += 1
             self.publish_to_crawler_id(user_id=user_id)
+        TaskManager().save_task(task=Task(
+            keywords=fullname,
+            endpoint='search',
+            status='in_progress',
+            amount=results_count
+        ))
 
