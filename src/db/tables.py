@@ -26,7 +26,7 @@ class EducationTable(Base):
 
 class ExperienceTable(Base):
     __tablename__ = 'experience'
-    no_pk = Column(INT, primary_key=True)
+    no_pk = Column(INT, primary_key=True, autoincrement=True)
     user_id = Column(String, ForeignKey("user.user_id"), nullable=False)
     company = Column(String)
     position = Column(VARCHAR)

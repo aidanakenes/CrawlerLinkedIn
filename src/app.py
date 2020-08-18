@@ -3,10 +3,8 @@ from fastapi import FastAPI, Request, Query
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from src.models.user import User, Education, Experience
-from src.service.crawler_user import LICrawler
-from src.publisher import Publisher
-from src.db.db_user import DBUser
+from src.publisher_collector import Publisher
+from src.db.db_user import DBSearcher
 from src.utils.err_utils import ValidationError, IDValidationError, CustomException
 
 app = FastAPI()
@@ -16,7 +14,7 @@ app = FastAPI()
 async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a-z0-9-]{1,128}$')):
     with Publisher() as publisher:
         publisher.publish_to_crawler_id(user_id=user_id)
-    user = DBUser().get_user_by_id(user_id=user_id)
+    user = DBSearcher().get_user_by_id(user_id=user_id)
     return JSONResponse(
         content=jsonable_encoder({'data': user})
     )
@@ -28,7 +26,7 @@ async def get(fullname: str):
         raise ValidationError()
     with Publisher() as publisher:
         publisher.publish_to_crawler_fullname(fullname=fullname)
-    users: DBUser().get_users_by_fullname(fullname) = []
+    users = DBSearcher().get_users_by_fullname(fullname)
     return JSONResponse(
         content=jsonable_encoder({'total': len(users), 'data': users})
     )
