@@ -1,6 +1,9 @@
 # LinkedIn Profile Crawler
+##### Service was built with FastAPI framework, Redis and PostgreSQL databases, RabbitMQ broker and wrapped in Docker. <br/><br/>
+
 ### Structure<br/>
  ![alt](https://github.com/aidanakenes/CrawlerLinkedIn/blob/dev/docs/service_scheme.png) <br/>
+
 ### **API Endpoints:**
 
 #### 1. GET: ``/linkedin/profile``
