@@ -35,9 +35,7 @@ class Publisher:
     def publish_to_crawler_fullname(self, fullname: str):
         logger.info(f'[x] Publishing tasks to crawler_queue')
         results_count = 0
-        keywords = fullname.split()
         for user_id in IDCollector().collect_id(fullname=fullname):
-
             results_count += 1
             self.publish_to_crawler_id(user_id=user_id)
         TaskManager().update_task('search', fullname, results_count)
