@@ -32,10 +32,15 @@ class Publisher:
         )
 
     def publish_to_crawler_fullname(self, fullname: str):
+        """
+            Call IDCollector and saves the last user_id to task (for checking status of task)
+        """
         logger.info(f'[x] Publishing tasks to crawler_queue')
         results_count = 0
+        last = None
         for user_id in IDCollector().collect_id(fullname=fullname):
             results_count += 1
             self.publish_to_crawler_id(user_id=user_id)
-        TaskManager().update_task('search', fullname, results_count)
+            last = user_id
+        TaskManager().last_collector_task('search', fullname, last)
 

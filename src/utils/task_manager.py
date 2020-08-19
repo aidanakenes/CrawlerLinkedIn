@@ -14,7 +14,7 @@ class Task(BaseModel):
     keywords: str
     endpoint: str
     status: str
-    amount: Optional[int]
+    last: Optional[str]
 
 
 class TaskManager:
@@ -33,10 +33,13 @@ class TaskManager:
         if cached is not None:
             return Task(**json.loads(cached))
 
-    def update_task(self, endpoint: str, keywords: str, amount: int):
+    def last_collector_task(self, endpoint: str, keywords: str, last: str):
+        """
+            Updates the last task of collector to know when task will be done
+        """
         task = self.get_task(endpoint, keywords)
         if task:
-            task.amount = amount
+            task.last = last
             self.save_task(task)
 
     def update_status(self, task: Task, status: str):

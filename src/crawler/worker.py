@@ -32,12 +32,16 @@ class Worker:
             logger.info("[x] May the force be with you!")
 
     def callback(self, ch, method, properties, body):
+        """
+            Calls LICrawler to get user by consumed user_id
+            and publishes to saver_queue
+        """
         user_id = body.decode('utf-8')
         logger.info(f'[x] Received {user_id}')
         try:
             user = LICrawler().get_user_by_id(user_id=user_id)
-            logger.info(f'[x] Publishing tasks to saver_queue')
             if user:
+                logger.info(f'[x] Publishing tasks to saver_queue')
                 self.channel.basic_publish(
                     exchange='',
                     routing_key=RabbitMQ.RABBITMQ_SAVER_QUEUE,

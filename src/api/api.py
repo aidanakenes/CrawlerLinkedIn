@@ -49,12 +49,12 @@ async def get(fullname: str):
     if len(fullname.split()) <= 1:
         raise ValidationError()
     task = task_manager.get_task(endpoint='search', keywords=fullname)
-    if task is None or task.amount is None:
+    if task is None:
         task_manager.save_task(Task(
             keywords=fullname,
             endpoint='search',
             status='in_progress',
-            amount=None
+            last=None
         ))
         with Publisher() as publisher:
             publisher.publish_to_crawler_fullname(fullname=fullname)
@@ -62,16 +62,18 @@ async def get(fullname: str):
             status_code=HTTPStatus.CREATED,
             content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
         )
-    users = Searcher().get_users_by_fullname(fullname)
-    if len(users) == task.amount:
-        task_manager.update_status(task, 'done')
-        return JSONResponse(
-            content=jsonable_encoder({'total': len(users), 'data': users})
-        )
-    else:
+    last_id = task.last
+    last_user = Searcher().get_user_by_id(last_id)
+    if last_id is None or last_user is None:
         return JSONResponse(
             status_code=HTTPStatus.CREATED,
             content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
+        )
+    if last_user:
+        users = Searcher().get_users_by_fullname(fullname)
+        task_manager.update_status(task, 'done')
+        return JSONResponse(
+            content=jsonable_encoder({'total': len(users), 'data': users})
         )
 
 

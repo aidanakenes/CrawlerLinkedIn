@@ -6,7 +6,6 @@ from src.utils.conf import RabbitMQ
 from src.utils.logger import get_logger
 from src.saver.db.db_user import Saver
 from src.models.user import User
-from src.utils.task_manager import TaskManager
 
 logger = get_logger(__name__)
 
@@ -30,13 +29,12 @@ class Consumer:
 
     @staticmethod
     def callback(ch, method, properties, body):
+        """
+            Calls Saver to save user by consumed user_id
+        """
         user_data = json.loads(body)
         user = User(**user_data)
         logger.info(f"[x] Received {user.user_id}")
-        task = TaskManager().get_task('profile', keywords=user.user_id)
-        if task:
-            TaskManager().update_status(task, 'done')
-        task = TaskManager().get_task('search', keywords=user.fullname.lower())
         Saver().insert_user(user)
         ch.basic_ack(delivery_tag=method.delivery_tag)
 

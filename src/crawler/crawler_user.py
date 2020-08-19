@@ -23,9 +23,9 @@ class LICrawler:
         self._request_url = UserRequest.URL
         self.params = UserRequest.PARAMS
 
-    def get_user_by_id(self, user_id: str):
+    def get_user_by_id(self, user_id: str) -> Optional[User]:
         """
-            Get user's profile data by public id
+            Gets user's profile data by public id
             and return User object
         """
         try:
@@ -40,9 +40,9 @@ class LICrawler:
         except ValidationError as e:
             logger.error(f'Failed to parse data for {user_id}: {type(e)}')
 
-    def _extract_raw_json(self, user_id: str):
+    def _extract_raw_json(self, user_id: str) -> Optional[Dict]:
         """
-            Extract user's raw json
+            Extracts user's raw json
         """
         self.params['memberIdentity'] = user_id
         time.sleep(2)
@@ -54,7 +54,7 @@ class LICrawler:
     @retry(logger=logger, exc_to_check=(ConnectionError, TimeoutError), tries=2, delay=2)
     def _make_request(self):
         """
-            Send GET request to user's page
+            Sends GET request to user's page
         """
         try:
             response = requests.get(
@@ -74,7 +74,7 @@ class LICrawler:
 
     def _collect_data(self, data: dict) -> Dict:
         """
-            Collect all necessary data for user from raw json
+            Collects all necessary data for user from raw json
         """
         user_data = {}
         education = []
@@ -131,7 +131,7 @@ class LICrawler:
     @staticmethod
     def _get_profile_pic(data: dict) -> Optional[str]:
         """
-            Extract profile picture with the highest quality
+            Extracts profile picture with the highest quality
         """
         if data.get('profilePicture') is None:
             return
