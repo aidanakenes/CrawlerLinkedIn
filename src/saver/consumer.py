@@ -33,9 +33,11 @@ class Consumer:
         user_data = json.loads(body)
         user = User(**user_data)
         logger.info(f"[x] Received {user.user_id}")
+        task = TaskManager().get_task('profile', keywords=user.user_id)
+        if task:
+            TaskManager().update_status(task, 'done')
+        task = TaskManager().get_task('search', keywords=user.fullname.lower())
         Saver().insert_user(user)
-        task = TaskManager().get_task(endpoint='profile', keywords=user.user_id)
-        TaskManager().update_status(task, status='done')
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 

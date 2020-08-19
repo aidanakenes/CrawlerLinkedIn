@@ -5,6 +5,8 @@ import pika
 from src.utils.conf import RabbitMQ
 from src.utils.logger import get_logger
 from src.crawler.crawler_user import LICrawler
+from src.utils.err_utils import CustomException
+from src.utils.task_manager import TaskManager
 
 logger = get_logger(__name__)
 
@@ -32,19 +34,22 @@ class Worker:
     def callback(self, ch, method, properties, body):
         user_id = body.decode('utf-8')
         logger.info(f'[x] Received {user_id}')
-        user = LICrawler().get_user_by_id(user_id=user_id)
-        logger.info(f'[x] Publishing tasks to saver_queue')
-        if user:
-            self.channel.basic_publish(
-                exchange='',
-                routing_key=RabbitMQ.RABBITMQ_SAVER_QUEUE,
-                body=json.dumps(user.dict())
-            )
+        try:
+            user = LICrawler().get_user_by_id(user_id=user_id)
+            logger.info(f'[x] Publishing tasks to saver_queue')
+            if user:
+                self.channel.basic_publish(
+                    exchange='',
+                    routing_key=RabbitMQ.RABBITMQ_SAVER_QUEUE,
+                    body=json.dumps(user.dict())
+                )
+        except CustomException:
+            task = TaskManager().get_task(endpoint='profile', keywords=user_id)
+            if task.status:
+                TaskManager().update_status(task, status='failed')
+        finally:
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
 if __name__ == '__main__':
-    try:
-        Worker().consume_from_crawler_queue()
-    except Exception as e:
-        logger.error(f'Worker died: {e}')
+    Worker().consume_from_crawler_queue()

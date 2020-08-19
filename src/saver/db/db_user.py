@@ -53,7 +53,6 @@ class Saver:
             pass
 
     def insert_relation(self, table: Base, user_id: str, records: List):
-        print(table)
         if table is SkillTable:
             rows = [SkillTable(user_id=user_id, skill_name=record) for record in records]
         else:

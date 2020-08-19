@@ -9,7 +9,7 @@ from fastapi.exceptions import RequestValidationError
 from src.collector.publisher import Publisher
 from src.utils.task_manager import TaskManager, Task
 from src.collector.searcher import Searcher
-from src.utils.err_utils import ValidationError, IDValidationError, CustomException
+from src.utils.err_utils import ValidationError, IDValidationError, CustomException, DoesNotExist
 
 app = FastAPI()
 task_manager = TaskManager()
@@ -35,7 +35,9 @@ async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a
             status_code=HTTPStatus.CREATED,
             content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
         )
-    elif task.status == 'done':
+    elif task.status == 'failed':
+        raise DoesNotExist()
+    else:
         user = Searcher().get_user_by_id(user_id=user_id)
         return JSONResponse(
             content=jsonable_encoder({'data': user})
@@ -48,8 +50,18 @@ async def get(fullname: str):
         raise ValidationError()
     task = task_manager.get_task(endpoint='search', keywords=fullname)
     if task is None or task.amount is None:
+        task_manager.save_task(Task(
+            keywords=fullname,
+            endpoint='search',
+            status='in_progress',
+            amount=None
+        ))
         with Publisher() as publisher:
             publisher.publish_to_crawler_fullname(fullname=fullname)
+        return JSONResponse(
+            status_code=HTTPStatus.CREATED,
+            content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
+        )
     users = Searcher().get_users_by_fullname(fullname)
     if len(users) == task.amount:
         task_manager.update_status(task, 'done')

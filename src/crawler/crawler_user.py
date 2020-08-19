@@ -31,7 +31,7 @@ class LICrawler:
         try:
             raw_data = self._extract_raw_json(user_id=user_id)
             if raw_data is None:
-                raise ApplicationError()
+                raise DoesNotExist()
             user_data = self._collect_data(data=raw_data)
             user_data['user_id'] = user_id
             user_data['user_url'] = f"{self.li_home}{user_id}"

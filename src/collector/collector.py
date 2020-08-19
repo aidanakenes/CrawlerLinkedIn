@@ -24,7 +24,8 @@ class IDCollector:
         """
         for users in self._get_all_results(fullname):
             for user in users:
-                if user.get('publicIdentifier'):
+                pub_id = user.get('publicIdentifier')
+                if pub_id and pub_id != 'UNKNOWN':
                     yield user.get('publicIdentifier')
 
     def _get_all_results(self, fullname: str):
@@ -77,5 +78,3 @@ class IDCollector:
             raise ApplicationError()
         if response.ok:
             return response
-
-
