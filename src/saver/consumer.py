@@ -6,6 +6,7 @@ from src.utils.conf import RabbitMQ
 from src.utils.logger import get_logger
 from src.saver.db.db_user import Saver
 from src.models.user import User
+from src.utils.task_manager import TaskManager
 
 logger = get_logger(__name__)
 
@@ -36,6 +37,9 @@ class Consumer:
         user = User(**user_data)
         logger.info(f"[x] Received {user.user_id}")
         Saver().insert_user(user)
+        task = TaskManager().get_task(endpoint='profile', keywords=user.user_id)
+        if task:
+            TaskManager().update_status(task, status='done')
         ch.basic_ack(delivery_tag=method.delivery_tag)
 
 
