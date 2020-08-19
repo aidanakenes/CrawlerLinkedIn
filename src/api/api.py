@@ -6,9 +6,9 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
-from src.collector.publisher import Publisher
+from src.api.publisher import Publisher
 from src.utils.task_manager import TaskManager, Task
-from src.collector.searcher import Searcher
+from src.api.searcher import Searcher
 from src.utils.err_utils import ValidationError, IDValidationError, CustomException, DoesNotExist
 
 app = FastAPI()

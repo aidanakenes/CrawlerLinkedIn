@@ -2,11 +2,10 @@ import pika
 
 from src.utils.conf import RabbitMQ
 from src.utils.logger import get_logger
-from src.collector.collector import IDCollector
+from src.api.collector import IDCollector
 from src.utils.task_manager import TaskManager, Task
 
 logger = get_logger(__name__)
-
 
 
 class Publisher:

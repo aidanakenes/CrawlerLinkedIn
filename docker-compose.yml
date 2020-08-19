@@ -1,6 +1,6 @@
 version: "3.0"
 services:
-  collector:
+  api:
     env_file: .env
     depends_on:
       - rabbit
@@ -9,7 +9,7 @@ services:
       - crawler
       - saver
     build: .
-    command: "python3 ./src/collector/api.py"
+    command: "python3 ./src/api/api.py"
     ports:
       - "8081:8080"
 
