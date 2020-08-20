@@ -7,9 +7,9 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
 from src.api.publisher import Publisher
-from src.utils.task_manager import TaskManager, Task
+from src.utils.task_manager import TaskManager
 from src.api.searcher import Searcher
-from src.utils.err_utils import ValidationError, IDValidationError, CustomException, DoesNotExist
+from src.utils.err_utils import ValidationError, IDValidationError, CustomException
 
 app = FastAPI()
 task_manager = TaskManager()
