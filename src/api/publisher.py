@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pika
 
 from src.utils.conf import RabbitMQ
@@ -24,7 +26,13 @@ class Publisher:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.connection.close()
 
-    def publish_to_crawler_id(self, user_id):
+    def publish_to_crawler_id(self, user_id, endpoint: str, keywords: str, last: Optional[str]):
+        TaskManager().save_task(task=Task(
+            keywords=keywords,
+            endpoint=endpoint,
+            status='in_progress',
+            last=last
+        ))
         self.channel.basic_publish(
             exchange='',
             routing_key=RabbitMQ.RABBITMQ_CRAWLER_QUEUE,
@@ -36,11 +44,10 @@ class Publisher:
             Call IDCollector and saves the last user_id to task (for checking status of task)
         """
         logger.info(f'[x] Publishing tasks to crawler_queue')
-        results_count = 0
-        last = None
         for user_id in IDCollector().collect_id(fullname=fullname):
-            results_count += 1
-            self.publish_to_crawler_id(user_id=user_id)
-            last = user_id
-        TaskManager().last_collector_task('search', fullname, last)
-
+            self.publish_to_crawler_id(
+                user_id=user_id,
+                endpoint='search',
+                keywords=fullname,
+                last=user_id
+            )

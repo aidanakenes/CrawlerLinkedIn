@@ -1,3 +1,4 @@
+from http import HTTPStatus
 import json
 from typing import Optional
 
@@ -6,6 +7,7 @@ from pydantic import BaseModel
 
 from src.utils.conf import Redis
 from src.utils.logger import get_logger
+from src.utils.err_utils import DoesNotExist, CustomException
 
 logger = get_logger(__name__)
 
@@ -33,15 +35,15 @@ class TaskManager:
         if cached is not None:
             return Task(**json.loads(cached))
 
-    def last_collector_task(self, endpoint: str, keywords: str, last: str):
-        """
-            Updates the last task of collector to know when task will be done
-        """
-        task = self.get_task(endpoint, keywords)
-        if task:
-            task.last = last
-            self.save_task(task)
-
     def update_status(self, task: Task, status: str):
         task.status = status
         self.save_task(task)
+
+    @staticmethod
+    def task_status(task):
+        if task.status == 'no':
+            return DoesNotExist().code, {'message': DoesNotExist().message}
+        if task.status == 'failed':
+            return CustomException().code, {'message': CustomException().message}
+        if task.status == 'in_progress':
+            return HTTPStatus.CREATED, {'message': 'Keep calm, response in progress!'}

@@ -5,7 +5,7 @@ import requests
 
 from src.utils.conf import SearchRequest
 from src.utils.logger import get_logger
-from src.utils.decorators import retry
+from src.utils.retry_deco import retry
 from src.utils.err_utils import ApplicationError, DoesNotExist
 
 logger = get_logger(__name__)
@@ -76,5 +76,4 @@ class IDCollector:
         if response.status_code == 429:
             logger.error('Authorization failed')
             raise ApplicationError()
-        if response.ok:
-            return response
+        return response

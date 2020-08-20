@@ -19,31 +19,25 @@ task_manager = TaskManager()
 async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a-z0-9-]{1,128}$')):
     task = task_manager.get_task(endpoint='profile', keywords=user_id)
     if task is None:
-        task_manager.save_task(task=Task(
-            keywords=user_id,
-            endpoint='profile',
-            status='in_progress'
-        ))
         with Publisher() as publisher:
-            publisher.publish_to_crawler_id(user_id=user_id)
+            publisher.publish_to_crawler_id(
+                user_id=user_id,
+                endpoint='profile',
+                keywords=user_id,
+                last=None
+            )
         return JSONResponse(
             status_code=HTTPStatus.CREATED,
             content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
         )
-    elif task.status == 'in_progress':
-        return JSONResponse(
-            status_code=HTTPStatus.CREATED,
-            content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
-        )
-    elif task.status == 'no':
-        raise DoesNotExist()
-    elif task.status == 'failed':
-        raise CustomException()
-    else:
+    if task.status == 'done':
         user = Searcher().get_user_by_id(user_id=user_id)
         return JSONResponse(
             content=jsonable_encoder({'data': user})
         )
+    else:
+        content, status_code = task_manager.task_status(task)
+        return JSONResponse(status_code=status_code, content=jsonable_encoder(content))
 
 
 @app.get('/linkedin/search')
@@ -52,12 +46,6 @@ async def get(fullname: str):
         raise ValidationError()
     task = task_manager.get_task(endpoint='search', keywords=fullname)
     if task is None:
-        task_manager.save_task(Task(
-            keywords=fullname,
-            endpoint='search',
-            status='in_progress',
-            last=None
-        ))
         with Publisher() as publisher:
             publisher.publish_to_crawler_fullname(fullname=fullname)
         return JSONResponse(

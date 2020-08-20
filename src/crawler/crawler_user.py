@@ -7,7 +7,7 @@ from pydantic.error_wrappers import ValidationError
 
 from src.models.user import User, Education, Experience
 from src.utils.logger import get_logger
-from src.utils.decorators import retry
+from src.utils.retry_deco import retry
 from src.utils.err_utils import ApplicationError, DoesNotExist
 from src.utils.conf import UserRequest
 
@@ -28,17 +28,12 @@ class LICrawler:
             Gets user's profile data by public id
             and return User object
         """
-        try:
-            raw_data = self._extract_raw_json(user_id=user_id)
-            if raw_data is None:
-                raise DoesNotExist()
-            user_data = self._collect_data(data=raw_data)
-            user_data['user_id'] = user_id
-            user_data['user_url'] = f"{self.li_home}{user_id}"
-            logger.info(f"Returning the LIUserCrawler's result for user {user_id}")
-            return User(**user_data)
-        except ValidationError as e:
-            logger.error(f'Failed to parse data for {user_id}: {type(e)}')
+        raw_data = self._extract_raw_json(user_id=user_id)
+        if raw_data is None:
+            raise DoesNotExist()
+        user_data = self._collect_data(data=raw_data, user_id=user_id)
+        logger.info(f"Returning the LIUserCrawler's result for user {user_id}")
+        return User(**user_data)
 
     def _extract_raw_json(self, user_id: str) -> Optional[Dict]:
         """
@@ -72,7 +67,7 @@ class LICrawler:
             raise ApplicationError()
         return response
 
-    def _collect_data(self, data: dict) -> Dict:
+    def _collect_data(self, data: dict, user_id: str) -> Dict:
         """
             Collects all necessary data for user from raw json
         """
@@ -123,6 +118,9 @@ class LICrawler:
                 user_data['experience'] = experience
                 user_data['education'] = education
                 user_data['skill'] = skill
+
+            user_data['user_id'] = user_id
+            user_data['user_url'] = f"{self.li_home}{user_id}"
             return user_data
         except AttributeError or Exception as e:
             logger.error(f"Failed to parse data: {type(e)}")
