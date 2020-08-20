@@ -1,13 +1,29 @@
-from pydantic import BaseModel
 from typing import Optional, List
+
+from pydantic import BaseModel
+
+
+class Education(BaseModel):
+    school: str
+    degree: Optional[str]
+    start: Optional[int]
+    end: Optional[int]
+
+
+class Experience(BaseModel):
+    company: str
+    position: Optional[str]
+    start: Optional[int]
+    end: Optional[int]
 
 
 class User(BaseModel):
-    full_name: str
-    location: str
-    heading: Optional[str]
-    education: Optional[List[dict]]
-    experience: Optional[List[dict]]
-    skills: Optional[List[dict]]
-    profile_pic_url: Optional[str]
+    user_id: str
+    fullname: str
     user_url: str
+    profile_pic_url: Optional[str]
+    location: Optional[str]
+    heading: Optional[str]
+    education: List[Education]
+    experience: List[Experience]
+    skill: List[str]

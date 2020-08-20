@@ -1,22 +1,35 @@
-class ApplicationError(Exception):
+from http import HTTPStatus
+
+
+class CustomException(Exception):
     def __init__(self):
-        self.code = 'APIError',
-        self.message = f'Failed to parse page for link'
+        self.code = HTTPStatus.INTERNAL_SERVER_ERROR
+        self.message = 'APIError'
 
 
-class RegexError(ApplicationError):
+class ApplicationError(CustomException):
     def __init__(self):
-        self.code = 'APIError',
-        self.message: str = 'Failed to parse regex'
+        super().__init__()
+        self.code = HTTPStatus.INTERNAL_SERVER_ERROR
+        self.message = 'APIError'
 
 
-class AuthenticationError(ApplicationError):
+class DoesNotExist(CustomException):
     def __init__(self):
-        self.code = 'APIError',
-        self.message: str = 'Failed to login'
+        super().__init__()
+        self.code = HTTPStatus.OK
+        self.message = 'Profile or profiles do not exist or have limited visibility'
 
 
-class BeautifulSoupError(ApplicationError):
+class ValidationError(CustomException):
     def __init__(self):
-        self.code = 'APIError',
-        self.message: str = 'Failed to parse with BeautifulSoup'
+        super().__init__()
+        self.code = HTTPStatus.BAD_REQUEST
+        self.message = 'The query parameter fullname must consist of at least two words'
+
+
+class IDValidationError(CustomException):
+    def __init__(self):
+        super().__init__()
+        self.code = HTTPStatus.BAD_REQUEST
+        self.message = 'Public id parameter can contain only letters, numbers and dash'
