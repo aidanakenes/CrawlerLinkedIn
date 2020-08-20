@@ -5,7 +5,7 @@ import pika
 from src.utils.conf import RabbitMQ
 from src.utils.logger import get_logger
 from src.crawler.crawler_user import LICrawler
-from src.utils.err_utils import CustomException
+from src.utils.err_utils import CustomException, DoesNotExist
 from src.utils.task_manager import TaskManager
 
 logger = get_logger(__name__)
@@ -47,6 +47,10 @@ class Worker:
                     routing_key=RabbitMQ.RABBITMQ_SAVER_QUEUE,
                     body=json.dumps(user.dict())
                 )
+        except DoesNotExist:
+            task = TaskManager().get_task(endpoint='profile', keywords=user_id)
+            if task.status:
+                TaskManager().update_status(task, status='no')
         except CustomException:
             task = TaskManager().get_task(endpoint='profile', keywords=user_id)
             if task.status:

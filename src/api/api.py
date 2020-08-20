@@ -35,8 +35,10 @@ async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a
             status_code=HTTPStatus.CREATED,
             content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
         )
-    elif task.status == 'failed':
+    elif task.status == 'no':
         raise DoesNotExist()
+    elif task.status == 'failed':
+        raise CustomException()
     else:
         user = Searcher().get_user_by_id(user_id=user_id)
         return JSONResponse(
