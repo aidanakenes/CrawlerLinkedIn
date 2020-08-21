@@ -41,7 +41,7 @@ class IDCollector:
 
     def collect_id(self, fullname: str):
         """
-            Return generator of user' id filtered by the given fullname
+            Return generator of users' id filtered by the given fullname
         """
         for users in self._get_all_results(fullname):
             for user in users:
