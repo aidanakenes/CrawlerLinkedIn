@@ -33,8 +33,8 @@ class Worker:
 
     def callback(self, ch, method, properties, body):
         """
-            Calls LICrawler to get user by consumed user_id
-            and publishes to saver_queue
+            Call LICrawler to get user by consumed user_id
+            and publishe to saver_queue
         """
         user_id = body.decode('utf-8')
         logger.info(f'[x] Received {user_id}')

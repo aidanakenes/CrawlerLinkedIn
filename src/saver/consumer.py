@@ -31,7 +31,7 @@ class Consumer:
     @staticmethod
     def callback(ch, method, properties, body):
         """
-            Calls Saver to save user by consumed user_id
+            Call Saver to save user by consumed user_id
         """
         user_data = json.loads(body)
         user = User(**user_data)

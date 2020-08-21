@@ -25,7 +25,7 @@ class LICrawler:
 
     def get_user_by_id(self, user_id: str) -> Optional[User]:
         """
-            Gets user's profile data by public id
+            Get user's profile data by public id
             and return User object
         """
         raw_data = self._extract_raw_json(user_id=user_id)
@@ -37,7 +37,7 @@ class LICrawler:
 
     def _extract_raw_json(self, user_id: str) -> Optional[Dict]:
         """
-            Extracts user's raw json
+            Extract user's raw json
         """
         self.params['memberIdentity'] = user_id
         time.sleep(2)
@@ -49,7 +49,7 @@ class LICrawler:
     @retry(logger=logger, exc_to_check=(ConnectionError, TimeoutError), tries=2, delay=2)
     def _make_request(self):
         """
-            Sends GET request to user's page
+            Send GET request to user's page
         """
         try:
             response = requests.get(
@@ -69,7 +69,7 @@ class LICrawler:
 
     def _collect_data(self, data: dict, user_id: str) -> Dict:
         """
-            Collects all necessary data for user from raw json
+            Collect all necessary data for user from raw json
         """
         user_data = {}
         education = []
@@ -129,7 +129,7 @@ class LICrawler:
     @staticmethod
     def _get_profile_pic(data: dict) -> Optional[str]:
         """
-            Extracts profile picture with the highest quality
+            Extract profile picture with the highest quality
         """
         if data.get('profilePicture') is None:
             return
