@@ -36,7 +36,7 @@ async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a
             content=jsonable_encoder({'data': user})
         )
     else:
-        content, status_code = task_manager.task_status(task)
+        status_code, content = task_manager.task_status(task)
         return JSONResponse(status_code=status_code, content=jsonable_encoder(content))
 
 

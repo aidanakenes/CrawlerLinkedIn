@@ -6,7 +6,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.exc import OperationalError, IntegrityError
 
 from src.models.user import User
-from src.saver.db.tables import UserTable, EducationTable, ExperienceTable, SkillTable, Base
+from src.saver.db.scheme import UserTable, EducationTable, ExperienceTable, SkillTable, Base
 from src.utils.conf import Postgres
 from src.utils.logger import get_logger
 from src.utils.err_utils import ApplicationError

@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import MetaData
 
 from src.models.user import User, Education, Experience
-from src.saver.db.tables import UserTable, EducationTable, ExperienceTable, SkillTable
+from src.saver.db.scheme import UserTable, EducationTable, ExperienceTable, SkillTable
 from src.utils.conf import Postgres
 from src.utils.logger import get_logger
 
