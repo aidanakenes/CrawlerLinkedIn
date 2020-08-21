@@ -33,3 +33,10 @@ class IDValidationError(CustomException):
         super().__init__()
         self.code = HTTPStatus.BAD_REQUEST
         self.message = 'Public id parameter can contain only letters, numbers and dash'
+
+
+class QueryValidationError(CustomException):
+    def __init__(self):
+        super().__init__()
+        self.code = HTTPStatus.BAD_REQUEST
+        self.message = 'Invalid query parameter ({})'

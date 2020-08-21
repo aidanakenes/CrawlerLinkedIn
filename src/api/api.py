@@ -1,3 +1,4 @@
+import json
 from http import HTTPStatus
 
 import uvicorn
@@ -9,7 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from src.api.publisher import Publisher
 from src.utils.task_manager import TaskManager
 from src.api.searcher import Searcher
-from src.utils.err_utils import ValidationError, IDValidationError, CustomException
+from src.utils.err_utils import ValidationError, IDValidationError, QueryValidationError, CustomException
 
 app = FastAPI()
 task_manager = TaskManager()
@@ -71,15 +72,22 @@ async def get(fullname: str):
 async def exception_handler(request: Request, exc):
     return JSONResponse(
         status_code=exc.code,
-        content=jsonable_encoder({'error': exc})
+        content=jsonable_encoder({'error': exc.message})
     )
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    req_dict = request.__dict__
+    query = req_dict['scope']['query_string'].decode('utf-8')
+    if 'user_id' not in query or 'fullname' not in query:
+        return JSONResponse(
+            status_code=QueryValidationError().code,
+            content=jsonable_encoder({'error': QueryValidationError().message.format(query)})
+        )
     return JSONResponse(
         status_code=IDValidationError().code,
-        content=jsonable_encoder({'error': IDValidationError()})
+        content=jsonable_encoder({'error': IDValidationError().message})
     )
 
 
