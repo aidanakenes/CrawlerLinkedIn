@@ -77,3 +77,12 @@ Query parameters:<br/>
     ]   
 ```
  
+### **Docker-compose:**
+```
+#Build, (re)create, start, and attache to containers for a service.
+$ sudo docker-compose up -d --build
+#Display log outputs
+$ sudo docker-compose logs -f
+#Stop containers and remove containers, networks, volumes, and images created by up
+$ sudo docker-compose down
+```
