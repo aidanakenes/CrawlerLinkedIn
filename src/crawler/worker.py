@@ -48,11 +48,11 @@ class Worker:
                     body=json.dumps(user.dict())
                 )
         except DoesNotExist:
-            task = TaskManager().get_task(endpoint='profile', keywords=user_id)
+            task = TaskManager().get_task(task_id=f'profile?{user_id}')
             if task.status:
                 TaskManager().update_status(task, status='no')
         except CustomException:
-            task = TaskManager().get_task(endpoint='profile', keywords=user_id)
+            task = TaskManager().get_task(task_id=f'profile?{user_id}')
             if task.status:
                 TaskManager().update_status(task, status='failed')
         finally:

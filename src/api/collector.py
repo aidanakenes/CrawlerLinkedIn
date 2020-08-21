@@ -2,8 +2,9 @@ import json
 import time
 
 import requests
+import pika
 
-from src.utils.conf import SearchRequest
+from src.utils.conf import SearchRequest, RabbitMQ
 from src.utils.logger import get_logger
 from src.utils.retry_deco import retry
 from src.utils.err_utils import ApplicationError, DoesNotExist
@@ -17,6 +18,26 @@ class IDCollector:
         self.params = SearchRequest.PARAMS
         self.headers = SearchRequest.HEADERS
         self.cookies = SearchRequest.COOKIES
+        credentials = pika.PlainCredentials(**RabbitMQ.RABBIT_AUTH)
+        parameters = pika.ConnectionParameters(
+            **RabbitMQ.RABBIT_CONF,
+            credentials=credentials
+        )
+        self.connection = pika.BlockingConnection(parameters=parameters)
+        self.channel = self.connection.channel()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.connection.close()
+
+    def publish_to_crawler_id(self, user_id):
+        self.channel.basic_publish(
+            exchange='',
+            routing_key=RabbitMQ.RABBITMQ_CRAWLER_QUEUE,
+            body=user_id
+        )
 
     def collect_id(self, fullname: str):
         """

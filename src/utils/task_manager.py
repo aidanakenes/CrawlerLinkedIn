@@ -7,14 +7,12 @@ from pydantic import BaseModel
 
 from src.utils.conf import Redis
 from src.utils.logger import get_logger
-from src.utils.err_utils import DoesNotExist, CustomException
 
 logger = get_logger(__name__)
 
 
 class Task(BaseModel):
-    keywords: str
-    endpoint: str
+    task_id: str
     status: str
     last: Optional[str]
 
@@ -25,25 +23,16 @@ class TaskManager:
 
     def save_task(self, task: Task):
         self.my_redis.setex(
-            name=f'{task.endpoint}_{task.keywords}',
+            name=task.task_id,
             value=task.json(),
             time=Redis.REDIS_TTL
         )
 
-    def get_task(self, endpoint: str, keywords: str):
-        cached = self.my_redis.get(f'{endpoint}_{keywords}')
+    def get_task(self, task_id: str):
+        cached = self.my_redis.get(task_id)
         if cached is not None:
             return Task(**json.loads(cached))
 
     def update_status(self, task: Task, status: str):
         task.status = status
         self.save_task(task)
-
-    @staticmethod
-    def task_status(task):
-        if task.status == 'no':
-            return DoesNotExist().code, {'message': DoesNotExist().message}
-        if task.status == 'failed':
-            return CustomException().code, {'message': CustomException().message}
-        if task.status == 'in_progress':
-            return HTTPStatus.CREATED, {'message': 'Keep calm, response in progress!'}

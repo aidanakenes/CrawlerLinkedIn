@@ -37,7 +37,7 @@ class Consumer:
         user = User(**user_data)
         logger.info(f"[x] Received {user.user_id}")
         Saver().insert_user(user)
-        task = TaskManager().get_task(endpoint='profile', keywords=user.user_id)
+        task = TaskManager().get_task(task_id=f'profile?{user.user_id}')
         if task:
             TaskManager().update_status(task, status='done')
         ch.basic_ack(delivery_tag=method.delivery_tag)

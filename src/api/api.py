@@ -1,4 +1,3 @@
-import json
 from http import HTTPStatus
 
 import uvicorn
@@ -7,10 +6,10 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
-from src.api.publisher import Publisher
-from src.utils.task_manager import TaskManager
+from src.api.collector import IDCollector
+from src.utils.task_manager import TaskManager, Task
 from src.api.searcher import Searcher
-from src.utils.err_utils import ValidationError, IDValidationError, QueryValidationError, CustomException
+from src.utils.err_utils import ValidationError, IDValidationError, QueryValidationError, CustomException, DoesNotExist
 
 app = FastAPI()
 task_manager = TaskManager()
@@ -18,15 +17,16 @@ task_manager = TaskManager()
 
 @app.get('/linkedin/profile')
 async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a-z0-9-]{1,128}$')):
-    task = task_manager.get_task(endpoint='profile', keywords=user_id)
+    task_id = f'profile?{user_id}'
+    task = task_manager.get_task(task_id)
     if task is None:
-        with Publisher() as publisher:
-            publisher.publish_to_crawler_id(
-                user_id=user_id,
-                endpoint='profile',
-                keywords=user_id,
-                last=None
-            )
+        with IDCollector() as collector:
+            collector.publish_to_crawler_id(user_id)
+        TaskManager().save_task(task=Task(
+            task_id=task_id,
+            status='in_progress',
+            last=None
+        ))
         return JSONResponse(
             status_code=HTTPStatus.CREATED,
             content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
@@ -36,23 +36,48 @@ async def get(user_id: str = Query(..., min_length=1, max_length=128, regex='^[a
         return JSONResponse(
             content=jsonable_encoder({'data': user})
         )
-    else:
-        status_code, content = task_manager.task_status(task)
-        return JSONResponse(status_code=status_code, content=jsonable_encoder(content))
+
+    if task.status == 'no':
+        return JSONResponse(
+            content=jsonable_encoder({'data': None})
+        )
+    if task.status == 'failed':
+        return JSONResponse(
+            status_code=CustomException().code,
+            content=jsonable_encoder({'message': CustomException().message})
+        )
+    if task.status == 'in_progress':
+        return JSONResponse(
+            status_code=HTTPStatus.CREATED,
+            content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
+        )
 
 
 @app.get('/linkedin/search')
 async def get(fullname: str):
     if len(fullname.split()) <= 1:
         raise ValidationError()
-    task = task_manager.get_task(endpoint='search', keywords=fullname)
+    task_id = f'search?{fullname}'
+    task = task_manager.get_task(task_id)
     if task is None:
-        with Publisher() as publisher:
-            publisher.publish_to_crawler_fullname(fullname=fullname)
-        return JSONResponse(
-            status_code=HTTPStatus.CREATED,
-            content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
-        )
+        try:
+            with IDCollector() as collector:
+                for user_id in collector.collect_id(fullname):
+                    collector.publish_to_crawler_id(user_id)
+                    last = user_id
+            TaskManager().save_task(task=Task(
+                task_id=task_id,
+                status='in_progress',
+                last=last
+            ))
+            return JSONResponse(
+                status_code=HTTPStatus.CREATED,
+                content=jsonable_encoder({'message': 'Keep calm, response in progress!'})
+            )
+        except DoesNotExist:
+            return JSONResponse(
+                content=jsonable_encoder({'data': None})
+            )
     last_id = task.last
     last_user = Searcher().get_user_by_id(last_id)
     if last_id is None or last_user is None:
