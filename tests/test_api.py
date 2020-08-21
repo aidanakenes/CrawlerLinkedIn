@@ -1,6 +1,7 @@
 import pytest
 
 
+@pytest.mark.query_validation
 def test_get_by_id_validation():
     from src.api.api import get
     from src.utils.err_utils import IDValidationError
