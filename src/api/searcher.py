@@ -34,6 +34,7 @@ class Searcher:
                 experience.append(Experience(**relation_record))
             for relation_record in self.get_relation(SkillTable, user_id):
                 skill.append(relation_record['skill_name'])
+            logger.info(f'Returning result of Searcher for user {user_id}')
             return User(
                 user_id=record['user_id'],
                 user_url=record['user_url'],
@@ -63,5 +64,7 @@ class Searcher:
             fullname_from_db = " ".join(fullname_from_db)
             if all(word in fullname_from_db for word in fullname):
                 users.append(self.get_user_by_id(record[0]))
+
+        logger.info(f'Returning results of Searcher for user {fullname}')
         return users
 

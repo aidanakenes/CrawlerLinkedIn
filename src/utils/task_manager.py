@@ -22,6 +22,7 @@ class TaskManager:
         self.my_redis = redis.Redis(**Redis.RedisConfig)
 
     def save_task(self, task: Task):
+        logger.info(f'Caching the task')
         self.my_redis.setex(
             name=task.task_id,
             value=task.json(),
